@@ -15,7 +15,7 @@ class NodeWorker():
                                             self.publicPort,
                                             self.dockerPort)
     
-    def getURL(self,mode:str='DOCKER',endPoint:str='workers'):
+    def getURL(self,mode='DOCKER',endPoint='workers'):
         if (mode=='DOCKER'):
             return 'http://{}:{}/{}'.format(self.nodeId,self.dockerPort,endPoint)
         else:
@@ -32,6 +32,12 @@ class NodeWorker():
     
     def addNode(self,node):
         self.nodes.append(node)
-        
+    
+    def getNodes(self):
+        return self.nodes
+    
     def getMode(self):
         return self.mode
+    
+    def getNumberEvents(self):
+        return self.events

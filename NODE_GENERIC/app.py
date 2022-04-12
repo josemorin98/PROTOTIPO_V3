@@ -1,5 +1,6 @@
 # from asyncio.log import logger
 from datetime import datetime
+from email import message
 import string
 import threading
 from flask import Flask, request
@@ -99,11 +100,11 @@ tableState = {
             "events":[]}        # LISTA DE INFORMACION DE LOS EVENTOS
 
 
-# -----------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------msg------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 # -----------------------------------------------------------------------------------------------------------------------
 
-
+# -------- 
 def loggerInfoSet(message:json):
     global loggerInfo
     # OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_RESQUEST_TIME LATENCE_TIME
@@ -111,11 +112,20 @@ def loggerInfoSet(message:json):
                                            message["READ_TIME"],
                                            message["PROCESS_TIME"],
                                            message["ARRIVAL_TIME"],
-                                           message["START_RESQUEST_TIME"],
+                                           message["START_REQUEST_TIME"],
                                            (message["ARRIVAL_TIME"]-message["START_REQUEST_TIME"]))
     loggerInfo.info(msg) 
 
-
+def loggerErrorSet(message):
+    global loggerError
+    # OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_RESQUEST_TIME LATENCE_TIME
+    # msg = "{} {} {} {} {} {}".format(message["OPERATION"],
+    #                                        message["READ_TIME"],
+    #                                        message["PROCESS_TIME"],
+    #                                        message["ARRIVAL_TIME"],
+    #                                        message["START_RESQUEST_TIME"],
+    #                                        (message["ARRIVAL_TIME"]-message["START_REQUEST_TIME"]))
+    loggerError.error(message)
 
 # -----------------------------------------------------------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -127,7 +137,7 @@ def loggerInfoSet(message:json):
 def add_worker():
     """ Esta funcion estara dedicada a guardar la informacion de los workers.
 
-        La funcion esta recibiendo un json de con la informacion del nodo worker
+        La funcion esta recibiendo un json de con la imsgformacion del nodo worker
         con la siguiente estructura:
         
         infoSend = {
@@ -149,7 +159,8 @@ def add_worker():
         endReadTime = time.time()                               # TIEMPO FINAL DE LECTURA
         readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
     except Exception as e:
-        message = "ERROR_READING CREATE_NODE {}".format(e)      # MENSAJE DE ERROR
+        message = "501-ERROR CREATE_NODE {}".format(e)      # MENSAJE DE ERROR
+        loggerErrorSet(message)
         return  jsonify({"response":message}),501               # RETORNO 501-LECTURA
     
     try:
@@ -158,75 +169,215 @@ def add_worker():
         nodeLocal.addNode(nodeNew)                              # AGREGAMOS EL NODO TRABAJADOR
         endTimeProcess = time.time()                            # TIEMPO FINAL DEL PROCESO
         processTime = endTimeProcess - startTimeProcess         # TIEMPO DE PROCES
-        send = True                                         
+        send = True
+        """
+            MESSAGE = OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_REQUEST_TIME LATENCE_TIME
+            
+            LATENCE_TIME = ARRIVAL_TIME - START_REQUEST_TIME
+        """
+        messageInfo = {"OPERATION": "CREATE_NODE",
+                    "READ_TIME": readTime,
+                    "PROCESS_TIME":processTime,
+                    "ARRIVAL_TIME":arrivalTime,
+                    "START_REQUEST_TIME":startRequestTime}
+        # loggerInfo.info('"CREATED"_NODE {} {}'.format(nodeNew.nodeId,(endTime-startTime)))
+        loggerInfoSet(messageInfo)
+        return jsonify({'response':"OK"}), 200                               
     except Exception as e:
-        message = "ERROR_PROCCESING CREATE_NODE {}".format(e)   # MENSAJE DE ERROR
+        message = "502-ERROR CREATE_NODE {}".format(e)   # MENSAJE DE ERROR
+        loggerErrorSet(message)
         return jsonify({"response":message}),502                # RETORNO 502-PROCCESING
     
-    """
-        MESSAGE = OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_REQUEST_TIME LATENCE_TIME
-        
-        LATENCE_TIME = ARRIVAL_TIME - START_REQUEST_TIME
-    """
-    messageInfo = {"OPERATION": "CREATE_NODE",
-                   "READ_TIME": readTime,
-                   "PROCESS_TIME":processTime,
-                   "ARRIVAL_TIME":arrivalTime,
-                   "START_REQUEST_TIME":startRequestTime}
-    # loggerInfo.info('"CREATED"_NODE {} {}'.format(nodeNew.nodeId,(endTime-startTime)))
-    loggerInfoSet(messageInfo)
-    return jsonify({'response':"OK"}), 200
+   
 
 
 
+# -----------------------------------------------------------------------------------------------------------------------
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# -----------------------------------------------------------------------------------------------------------------------
 
-# GET ALL NODES WORKERS
+
+# -------- FUNCION MOSTRARA LOS NODOS PRESENTADOS
 @app.route('/workers', methods = ['GET'])
 def show_worker():
-    global state
-    # show all nodes
-    nodes = state['nodes']
-    nodesReturn = []
-    for node in nodes:
-        nodesReturn.append(node.toJSON())
-    return jsonify(nodesReturn)
+    global nodeLocal
+    try:
+        nodes = nodeLocal.getNodes()            # ALMACENAMOS LOS NODOS DISPONIBLES
+    except Exception as e:
+        message = "501-ERROR READ_NODES {}".format(e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 501
+    try:    
+        nodesReturn = []                        # LISTA VACIA DE RETORNO
+        for node in nodes:
+            nodesReturn.append(node.toJSON())   # GUARDAMOS EL FORMATO JSON DE CADA NODO
+        return jsonify(nodesReturn),200             # RETORNAMOS
+    except Exception as e:
+        message = "502-ERROR PROCESS_NODES {}".format(e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 502
 
 
+# -----------------------------------------------------------------------------------------------------------------------
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# -----------------------------------------------------------------------------------------------------------------------
+
+
+# -------- FUNCION MOSTRARA LA TABLA DE EVENTOS
 @app.route('/status', methods = ['GET'])
 def send_balance():
     global tableState
-    return jsonify(tableState)
+    return jsonify(tableState)      # RETORNA LOS VALORES DE LA TABLA DE EVENTOS
 
+# -----------------------------------------------------------------------------------------------------------------------
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# -----------------------------------------------------------------------------------------------------------------------
+
+
+# -------- FUNCION PARA ACTUALIZAR LA TABLA DE EVENTOS
 def updateStateTable(jsonRespone,numberEvent,procesList,nodeId):
-    global tableState
-    eventName = "event_{}".format(numberEvent)
-    loggerError.error("----------------------------------- RESPONSE {}".format(eventName))
-    # saber si existe el evneto en la tabla de estado
-    jsonState = {"NODE_ID":nodeId,
-                "DATA_PROCESS": procesList,
-                "INFO_RESPONSE":jsonRespone}
-    if (eventName in tableState["events"]):
-        tableState["events"][eventName] = list()
-        tableState["events"][eventName].append(jsonState)
-    else:
-        tableState["events"][eventName].append(jsonState)
-    
-    return 
+    """
+    Esta funcion esta dedicada a actualizar la tabla de eventos del nodo.
 
+    Args:
+        jsonRespone (json): json retornado por el nodo de la peticion
+        numberEvent (int): numero de evento ejecutado
+        procesList (list): lista de cubos ejecutados en el nodeID
+        nodeId (str): identificador del nodo de la peticion
+
+    Returns:
+        str: "OK" si todo se ejecuto perfectamente
+    """
+    global tableState
+    global nodeLocal
+    try:
+        eventName = "event_{}".format(numberEvent)              # GENERAMOS EL ID DEL EVENTOS
+        jsonState = {"NODE_ID":nodeId,                          # GUARDAMOS EL ID DEL NODO
+                    "DATA_PROCESS": procesList,                 # GUARDAMOS EL PROCESO
+                    "INFO_RESPONSE":jsonRespone}                # TIEMPOS DEL NODO
+    except Exception as e:
+        message = "501-ERROR READ_EVENTS {}".format(e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}),501
+    
+    try:
+        if (eventName in tableState["events"]):                 # VERIFCA EL ID DEL EVENTOS
+            tableState["events"][eventName].append(jsonState)   # GUARDAMOS EL JSON DE EVENTO
+        else:
+            tableState["events"][eventName] = list()            # LO IGUALAMOS A UNA LISTA
+            tableState["events"][eventName].append(jsonState)   # GUARDAMOS EL JSON DE EVENTO
+        return "OK",200
+    except Exception as e:
+        message = "502-ERROR PROCESS_EVENTS {}".format(e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}),502
+    
+
+# -----------------------------------------------------------------------------------------------------------------------
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# -----------------------------------------------------------------------------------------------------------------------
+
+
+# -------- FUNCION PARA EMPEZAR UNA PETICION
 def sendData(url,jsonSend,numberEvent,procesList,nodeId):
+    """
+    Funcion encargada para enviar los datos en un formato json, y mandar a actualizar los eventos 
+    generados dentro del nodo.
+
+    Args:
+        url (str): url destino
+        jsonSend (json): json a enviar
+        numberEvent (int): numero de evento
+        procesList (list): cubos ejecutados
+        nodeId (str): identificacion del nodo
+
+    Returns:
+        str: "OK" si todo se ejecuto perfectamente
+    """
     try:
         headers = {'PRIVATE-TOKEN': '<your_access_token>', 'Content-Type':'application/json'}
-        requests.post(url, data=json.dumps(jsonSend), headers=headers)
-        # jsonResponse = response.json()
-        # updateStateTable(jsonRespone=jsonResponse,numberEvent=numberEvent, procesList=procesList, nodeId=nodeId)
-        return "OK"
-    except:
-        loggerError.error('BALANCER_ERROR SEND_INFO {}'.format(nodeId))
-        return "ERROR"
+        response = requests.post(url, data=json.dumps(jsonSend), headers=headers)
+        jsonResponse = response.json()
+        updateStateTable(jsonRespone=jsonResponse,numberEvent=numberEvent, procesList=procesList, nodeId=nodeId)
+        return "OK",200
+    except Exception as e:
+        message = "503-ERROR COMUNICATION_REQUEST {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 503
 
 @app.route('/prueba', methods = ['GET'])
 def pruebaSend():
-    return 1
+    global nodeLocal
+    
+    nodes= nodeLocal.getNodes()
+    numberEvent = nodeLocal.getNumberEvents()
+    for worker in nodes:
+        url = worker.getURL(mode=nodeLocal.getMode(), endPoint="/respose")
+        
+        startRequestTime = time.time()
+        jsonSend={"prueba":"prueba1",
+                    "startRequestTime": startRequestTime}
+        response = sendData(url=url, 
+                            jsonSend=jsonSend,
+                            numberEvent=numberEvent, 
+                            procesList=[worker.getID()],
+                            nodeId=worker.getID())
+    return jsonify(jsonSend),200
+
+@app.route('/response', methods = ['GET'])
+def pruebaResponde():
+    """
+    Resumen de la funcion a realizar
+
+    Returns:
+        _type_: _description_
+    """
+    global nodeLocal
+    try:
+        arrivalTime = time.time()                               # TIEMPO DE LLEGADA (arrivalTime)
+        requestJson = request.get_json()                        # RECIBIR LOS PARAMETROS
+        startRequestTime = requestJson["startRequestTime"]      # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
+        
+        # -------- LECTURA
+        time.sleep(1)                                           # LECTURA
+        # -------- LECTURA
+        
+        endReadTime = time.time()                               # FIN DE LETURA
+        readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
+    except Exception as e:
+        message = "ERROR READ_ENDPOINT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 501
+    
+    try:
+        # PROCESO
+        time.sleep(2)                                           # PROCESO
+        endProcessTime = time.time()                            # FIN DEL PROCESO
+        processTime = endProcessTime-endReadTime                # TIEMPO DE PROCESO
+        latenceTime = arrivalTime- startRequestTime
+        messageInfo = {"OPERATION": "CREATE_NODE",              # MENSAJE PARA EL LOGGER INFO
+                        "READ_TIME": readTime,
+                        "PROCESS_TIME":processTime,
+                        "ARRIVAL_TIME":arrivalTime,
+                        "START_REQUEST_TIME":startRequestTime}
+        
+    except Exception as e:
+        message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 502
+        
+    
+    
+    jsonReturn ={
+            "CODE_STATUS": 200,
+            "RESPONSE_STATUS": "SUCCESSFULLY",
+            "OPERATION": "TEST",
+            "READ_TIME": readTime,
+            "ARRIVAL_TIME": arrivalTime,
+            "START_REQUEST_TIME": startRequestTime,
+            "LATENCIE_TIME": latenceTime 
+        }
+    return jsonify(jsonReturn),200
     
     
 @app.before_first_request
@@ -287,11 +438,11 @@ def presentation():
             break
         except requests.ConnectionError as e:
             # loggerError.error('CONNECTION_REFUSED PRESENTATION_SEND {} {}'.format(nodeManager.nodeId, contPresentation))
-            msg = "ERROR PRESENTATION_SEND_{} {}".format(contPresentation,e)
+            msg = "WARNING COMUNICATION_PRESENTATION {} {}".format(contPresentation,e)
             contPresentation = contPresentation + 1
             if (contPresentation == 10):
-                msg = "CONNECTION_REFUSED PRESENTATION_SEND_{} {}".format(contPresentation,e)
-                return jsonify({"response":msg})
+                msg = "504-ERROR COMUNICATION_PRESENTATION {} {}".format(contPresentation,e)
+                return jsonify({"response":msg}), 504
             time.sleep(5)
     
     return "CONNECTION_SUCCESSFULLY"
