@@ -94,10 +94,9 @@ nodeManager = node.NodeWorker(**nodeInfoManager)                        # GENERA
 # -----------------------------------------------------------------------------------------------------------------------
 
 # -------- TABLA DE ESTADOS DE EVENTOS DEL NODO
-tableState = {
-            "totalEvents":0,    # TOTAL DE EVENTOS EJECUTADOS
+tableState = {"totalEvents":0,    # TOTAL DE EVENTOS EJECUTADOS
             "nodeID":nodeId,    # ID DEL NODO LOCAL
-            "events":[]}        # LISTA DE INFORMACION DE LOS EVENTOS
+            "events":{}}        # LISTA DE INFORMACION DE LOS EVENTOS
 
 
 # -----------------------------------------------------msg------------------------------------------------------------------
@@ -251,21 +250,24 @@ def updateStateTable(jsonRespone,numberEvent,procesList,nodeId):
     global tableState
     global nodeLocal
     try:
-        eventName = "event_{}".format(numberEvent)              # GENERAMOS EL ID DEL EVENTOS
-        jsonState = {"NODE_ID":nodeId,                          # GUARDAMOS EL ID DEL NODO
-                    "DATA_PROCESS": procesList,                 # GUARDAMOS EL PROCESO
-                    "INFO_RESPONSE":jsonRespone}                # TIEMPOS DEL NODO
+        eventName = "event_{}".format(numberEvent)                  # GENERAMOS EL ID DEL EVENTOS
+        jsonState = {"NODE_ID":nodeId,                              # GUARDAMOS EL ID DEL NODO
+                    "DATA_PROCESS": procesList,                     # GUARDAMOS EL PROCESO
+                    "INFO_RESPONSE":jsonRespone}                    # TIEMPOS DEL NODO
     except Exception as e:
         message = "501-ERROR READ_EVENTS {}".format(e)
         loggerErrorSet(message)
         return jsonify({"response":message}),501
     
     try:
-        if (eventName in tableState["events"]):                 # VERIFCA EL ID DEL EVENTOS
-            tableState["events"][eventName].append(jsonState)   # GUARDAMOS EL JSON DE EVENTO
-        else:
-            tableState["events"][eventName] = list()            # LO IGUALAMOS A UNA LISTA
-            tableState["events"][eventName].append(jsonState)   # GUARDAMOS EL JSON DE EVENTO
+        if (eventName in tableState["events"]):                     # VERIFCA EL ID DEL EVENTOS
+            tableState["events"][eventName].append(jsonState)       # GUARDAMOS EL JSON DE EVENTO
+            tableState['totalEvents']=len(tableState["events"])# ACTUALIZAMOS LA CANTIDAD DE NODOS
+        else:   
+            
+            tableState["events"][eventName] = list()                # LO IGUALAMOS A UNA LISTA
+            tableState["events"][eventName].append(jsonState)       # GUARDAMOS EL JSON DE EVENTO
+            tableState['totalEvents']=len(tableState["events"])# ACTUALIZAMOS LA CANTIDAD DE NODOS
         return "OK",200
     except Exception as e:
         message = "502-ERROR PROCESS_EVENTS {}".format(e)
@@ -305,14 +307,15 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
         loggerErrorSet(message)
         return jsonify({"response":message}), 503
 
-@app.route('/prueba', methods = ['GET'])
+@app.route('/prueba', methods = ['POST'])
 def pruebaSend():
     global nodeLocal
     
     nodes= nodeLocal.getNodes()
     numberEvent = nodeLocal.getNumberEvents()
     for worker in nodes:
-        url = worker.getURL(mode=nodeLocal.getMode(), endPoint="/respose")
+        url = worker.getURL(mode=nodeLocal.getMode(), endPoint="response")
+        loggerInfo.info("\nURL - {}".format(url))
         
         startRequestTime = time.time()
         jsonSend={"prueba":"prueba1",
@@ -322,9 +325,10 @@ def pruebaSend():
                             numberEvent=numberEvent, 
                             procesList=[worker.getID()],
                             nodeId=worker.getID())
+    nodeLocal.setNumberEvents()
     return jsonify(jsonSend),200
 
-@app.route('/response', methods = ['GET'])
+@app.route('/response', methods = ['POST'])
 def pruebaResponde():
     """
     Resumen de la funcion a realizar
@@ -339,7 +343,7 @@ def pruebaResponde():
         startRequestTime = requestJson["startRequestTime"]      # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
         
         # -------- LECTURA
-        time.sleep(1)                                           # LECTURA
+        time.sleep(1)
         # -------- LECTURA
         
         endReadTime = time.time()                               # FIN DE LETURA
@@ -360,6 +364,7 @@ def pruebaResponde():
                         "PROCESS_TIME":processTime,
                         "ARRIVAL_TIME":arrivalTime,
                         "START_REQUEST_TIME":startRequestTime}
+        loggerInfoSet(message=messageInfo)
         
     except Exception as e:
         message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)

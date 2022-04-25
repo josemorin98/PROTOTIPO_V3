@@ -41,3 +41,6 @@ class NodeWorker():
     
     def getNumberEvents(self):
         return self.events
+    
+    def setNumberEvents(self):
+        self.events = self.events+1

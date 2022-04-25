@@ -18,7 +18,7 @@ services:
       - /test/prototipoTest/:/app/data/
       - /test/prototipoTest/logs/:/app/data/logs
     networks:
-      - proto_net
+      - workers_v3
     ports:
       - 5001:5000
     
@@ -44,9 +44,35 @@ services:
       - /test/prototipoTest/:/app/data/
       - /test/prototipoTest/logs/:/app/data/logs
     networks:
-      - proto_net
+      - workers_v3
     ports:
       - 5002:5000
+  
+  node_3:
+    image: jmorin98/node_v3
+    hostname: node_3
+    environment:
+      NODE_ID: node_3
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5003
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: node_1
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5001
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5003:5000
 
 networks:
-  proto_net:
+  workers_v3:
