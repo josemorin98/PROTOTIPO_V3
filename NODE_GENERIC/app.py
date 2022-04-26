@@ -105,6 +105,21 @@ tableState = {"totalEvents":0,    # TOTAL DE EVENTOS EJECUTADOS
 
 # -------- 
 def loggerInfoSet(message:json):
+    """
+        Metodo que despligea en consola y guarda en el archivo .log correspondiete
+        a nodo en el que se este ejecurando un evento.
+        
+        El json a recibir es con la siguiente estructura:
+        json: { message["OPERATION"]:str,
+                message["READ_TIME"]:int,
+                message["PROCESS_TIME"]:int,
+                message["ARRIVAL_TIME"]:int,
+                message["START_REQUEST_TIME"]:int,
+                (message["ARRIVAL_TIME"]-message["START_REQUEST_TIME"])
+
+    Args:
+        message (): json
+    """
     global loggerInfo
     # OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_RESQUEST_TIME LATENCE_TIME
     msg = "{} {} {} {} {} {}".format(message["OPERATION"],
@@ -117,13 +132,6 @@ def loggerInfoSet(message:json):
 
 def loggerErrorSet(message):
     global loggerError
-    # OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_RESQUEST_TIME LATENCE_TIME
-    # msg = "{} {} {} {} {} {}".format(message["OPERATION"],
-    #                                        message["READ_TIME"],
-    #                                        message["PROCESS_TIME"],
-    #                                        message["ARRIVAL_TIME"],
-    #                                        message["START_RESQUEST_TIME"],
-    #                                        (message["ARRIVAL_TIME"]-message["START_REQUEST_TIME"]))
     loggerError.error(message)
 
 # -----------------------------------------------------------------------------------------------------------------------
@@ -199,6 +207,11 @@ def add_worker():
 # -------- FUNCION MOSTRARA LOS NODOS PRESENTADOS
 @app.route('/workers', methods = ['GET'])
 def show_worker():
+    """_summary_
+
+    Returns:
+        _type_: _description_
+    """
     global nodeLocal
     try:
         nodes = nodeLocal.getNodes()            # ALMACENAMOS LOS NODOS DISPONIBLES
@@ -225,6 +238,15 @@ def show_worker():
 # -------- FUNCION MOSTRARA LA TABLA DE EVENTOS
 @app.route('/status', methods = ['GET'])
 def send_balance():
+    """
+        Funcion que nos ayudara a retornar el estado de los eventos EJECUTADOS
+        dentro del nodo, con sus diferentes trabajadores.
+        Esta funcion guardara infromacion relevante de los proceso hechos, asi
+        como los tiempos obtenidos dentro del nodo.
+
+    Returns:
+        json: infromacion de los eventos
+    """
     global tableState
     return jsonify(tableState)      # RETORNA LOS VALORES DE LA TABLA DE EVENTOS
 
@@ -297,10 +319,16 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
         str: "OK" si todo se ejecuto perfectamente
     """
     try:
-        headers = {'PRIVATE-TOKEN': '<your_access_token>', 'Content-Type':'application/json'}
-        response = requests.post(url, data=json.dumps(jsonSend), headers=headers)
-        jsonResponse = response.json()
-        updateStateTable(jsonRespone=jsonResponse,numberEvent=numberEvent, procesList=procesList, nodeId=nodeId)
+        headers = {'PRIVATE-TOKEN': '<your_access_token>',  # HEADER DE LA PETICION
+                   'Content-Type':'application/json'}
+        response = requests.post(url,                       # URL DESTINO
+                    data=json.dumps(jsonSend),              # JSON A ENVIAR
+                    headers=headers)                        # ASIGNAMOS HEADERS
+        jsonResponse = response.json()                      # GUARDAMOS EL RESULTADO
+        updateStateTable(jsonRespone=jsonResponse,          # JSON A GUARDAR EN EVEENTOS
+                            numberEvent=numberEvent,        # NUMERO DE EVENTOS
+                            procesList=procesList,          # ARCHIVOS PROCESADOS
+                            nodeId=nodeId)                  # ID DEL NODO TRABAJADOR
         return "OK",200
     except Exception as e:
         message = "503-ERROR COMUNICATION_REQUEST {} {}".format(nodeId,e)
@@ -322,20 +350,14 @@ def pruebaSend():
                     "startRequestTime": startRequestTime}
         response = sendData(url=url, 
                             jsonSend=jsonSend,
-                            numberEvent=numberEvent, 
-                            procesList=[worker.getID()],
-                            nodeId=worker.getID())
+                            numberEvent=numberEvent,                        
+                            procesList=[worker.getID()],                    # COLOCAR LOS ARCHIVOS PROCESADOS
+                            nodeId=worker.getID())                          # ID DEL NODO TRABAJADOR
     nodeLocal.setNumberEvents()
     return jsonify(jsonSend),200
 
 @app.route('/response', methods = ['POST'])
 def pruebaResponde():
-    """
-    Resumen de la funcion a realizar
-
-    Returns:
-        _type_: _description_
-    """
     global nodeLocal
     try:
         arrivalTime = time.time()                               # TIEMPO DE LLEGADA (arrivalTime)
