@@ -1,0 +1,17 @@
+# Ignore the node_modules directory
+
+# Ignore Logs
+logs
+*.log
+*.csv
+
+# Ignore the build directory
+/__pycache__
+
+# The file containing environment variables 
+.env
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.sw*
