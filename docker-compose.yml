@@ -1,11 +1,11 @@
 version: '3'
 services:
 
-  node_1:
-    image: jmorin98/node_v3
-    hostname: node_1
+  orchestrator_0:
+    image: jmorin98/orchestrator
+    hostname: orchestrator_0
     environment:
-      NODE_ID: node_1
+      NODE_ID: orchestrator_0
       IP: '127.0.0.1'
       PUBLIC_PORT: 5001
       DOCKER_PORT: 5000
@@ -13,6 +13,7 @@ services:
       SEND: 0
       SOURCE_PATH: /data
       LOGS_PATH: /logs
+      ALGORITHM: TC
       PRESENTATION: 0
     volumes:
       - /test/prototipoTest/:/app/data/
@@ -23,7 +24,7 @@ services:
       - 5001:5000
     
   node_2:
-    image: jmorin98/node_v3
+    image: jmorin98/orchestrator
     hostname: node_2
     environment:
       NODE_ID: node_2
@@ -36,7 +37,7 @@ services:
       LOGS_PATH: /logs
       PRESENTATION: 1
 
-      NODE_ID_MANAGER: node_1
+      NODE_ID_MANAGER: orchestrator_0
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5001
       DOCKER_PORT_MANAGER: 5000
@@ -49,7 +50,7 @@ services:
       - 5002:5000
   
   node_3:
-    image: jmorin98/node_v3
+    image: jmorin98/orchestrator
     hostname: node_3
     environment:
       NODE_ID: node_3
@@ -62,7 +63,7 @@ services:
       LOGS_PATH: /logs
       PRESENTATION: 1
 
-      NODE_ID_MANAGER: node_1
+      NODE_ID_MANAGER: orchestrator_0
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5001
       DOCKER_PORT_MANAGER: 5000

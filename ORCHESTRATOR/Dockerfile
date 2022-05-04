@@ -4,6 +4,7 @@ FROM python:3.8-slim-buster
 RUN pip install flask
 RUN pip install requests
 RUN pip install pandas
+RUN python3 -m pip install dask
 
 COPY ./ /app
 WORKDIR  /app

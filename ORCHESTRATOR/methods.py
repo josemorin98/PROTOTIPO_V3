@@ -121,50 +121,51 @@ def TwoChoicesV2(cargas, traza):
             
 #     return cargas
 
-def TwoChoicesV4(cargas, traza, sources, sourcePath, varSpatial, loggerError):
-    # df = pd.read_csv('.{}/{}'.format(sourcePath,nameFile))
-    loggerError.error("------------------------- {}".format(workers))
-    workers = len(cargas)
-    cantWorkers = np.zeros(workers)
-    select_bin = 0
-    select_bin2 = 0
-    aux = True
-    if(workers==1):
-        # for x in range(len(traza.iloc[:,0])):
-        #     cargas[0].append(traza[0][x])
-        
-        for x in traza:
-            cargas[0].append(x)
-    else:
-        # for x in range(len(traza.iloc[:,0])):
-        for xTraza in traza:
-            # se selecciona el primer trabajador
-            select_bin = random.randint(0, workers-1)
-            while(aux):
-                # se selecciona el segundo trabajador
-                select_bin2 = random.randint(0, workers-1)
-                # si es diferente rompe el ciclo
-                if(select_bin != select_bin2):
-                    aux = False
-            # revisamos la cantidad de registros con esa clase para cada fuente
-            cantRows=0
-            # print("{} - {}".format(select_bin, select_bin2))
-            for src in sources:
-                df = pd.read_csv(".{}/{}".format(sourcePath,src))
-                # df = pd.read_csv('.{}/{}'.format(sourcePath,nameFile))
-                # cantidad de registros
-                cantRows = cantRows + df[df[varSpatial]==xTraza].shape[0]
-            
-            if( cantWorkers[select_bin] < cantWorkers[select_bin2] ):
-                cargas[select_bin].append(xTraza)
-                cantWorkers[select_bin] = cantWorkers[select_bin]+cantRows
-            else:
-                cargas[select_bin2].append(xTraza)
-                cantWorkers[select_bin2] = cantWorkers[select_bin2]+cantRows
-            aux = True
-    # print(cantWorkers)
-    # print(sum(cantWorkers))
-    return cargas
+def TwoChoicesV4(cargas, traza, sources, sourcePath, varSpatial):
+    #varSpatial es arreglo
+    try:
+        workers = len(cargas)
+        cantWorkers = np.zeros(workers)
+        select_bin = 0
+        select_bin2 = 0
+        aux = True
+        # si es un workers
+        if(workers==1):
+            # for x in range(len(traza.iloc[:,0])):
+            #     cargas[0].append(traza[0][x])
+            for x in traza:
+                cargas[0].append(x)
+        else:
+            # for x in range(len(traza.iloc[:,0])):
+            for xTraza in traza:
+                # se selecciona el primer trabajador aleatorio
+                select_bin = random.randint(0, workers-1)
+                while(aux):
+                    # se selecciona el segundo trabajador
+                    select_bin2 = random.randint(0, workers-1)
+                    # si es diferente rompe el ciclo
+                    if(select_bin != select_bin2):
+                        aux = False
+                # revisamos la cantidad de registros con esa clase para cada fuente
+                cantRows=0
+                # print("{} - {}".format(select_bin, select_bin2))
+                for pos,src in enumerate(sources):
+                    df = pd.read_csv(".{}/{}".format(sourcePath,src))
+                    # df = pd.read_csv('.{}/{}'.format(sourcePath,nameFile))
+                    # cantidad de registros
+                    cantRows = cantRows + df[df[varSpatial[pos]]==xTraza].shape[0]
+                
+                if( cantWorkers[select_bin] < cantWorkers[select_bin2]):
+                    cargas[select_bin].append(xTraza)
+                    cantWorkers[select_bin] = cantWorkers[select_bin]+cantRows
+                else:
+                    cargas[select_bin2].append(xTraza)
+                    cantWorkers[select_bin2] = cantWorkers[select_bin2]+cantRows
+                aux = True
+        return cargas
+    except Exception as e:
+        return e
+    
 
 def toBalanceData(initWorkers,balanceData,algorithm):
     if (algorithm=='RR'):
@@ -173,8 +174,8 @@ def toBalanceData(initWorkers,balanceData,algorithm):
         balancedData = PseudoRandomV2(cargas=initWorkers, traza=balanceData)
     return balancedData
 
-def toBalanceDataTC(initWorkers,balanceData,algorithm,sources,sourcePath,varSpatial,loggerError):
-    balancedData = TwoChoicesV4(cargas=initWorkers, traza=balanceData, sources=sources, sourcePath=sourcePath,varSpatial=varSpatial, loggerError=loggerError)
+def toBalanceDataTC(initWorkers,balanceData,algorithm,sources,sourcePath,varSpatial):
+    balancedData = TwoChoicesV4(cargas=initWorkers, traza=balanceData, sources=sources, sourcePath=sourcePath,varSpatial=varSpatial)
                             # (cargas=arrayWorkers, traza=list(toBalanceData), sources=sources,sourcePath=sourcePath, varSpatial=varSpatial)
     return balancedData
 
@@ -229,3 +230,18 @@ def generateStringDate(tipo,inicio,fin):
     # division por dias
     elif(tipo=='dia'):
         return inicio.strftime("%d/%m/%Y") + '_' + fin.strftime("%d/%m/%Y")
+    
+def getItems(itemName,cubes):
+  nameFileList = list()
+  for cube in cubes.keys():
+    nameFileList.append(cubes[cube][itemName])
+  return nameFileList
+
+def maxValueInList(listOfListo):
+    lens= list()
+    for x in listOfListo:
+        lens.append(len(x))
+    return np.max(lens)
+
+def getNameCube(cubes,posCube):
+    return list(cubes.keys())[posCube]

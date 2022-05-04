@@ -8,6 +8,7 @@ class NodeWorker():
         self.dockerPort = kwargs.get('dockerPort',5000)
         self.mode = kwargs.get('mode',"DOCKER")
         self.events = kwargs.get('events',0)
+        self.algorithm = kwargs.get('algorithm',"RR")
 
     def getInfoNode(self):
         return 'nodeId = {} \nip = {} \npublicPort = {} \ndockerPort = {}'.format(self.nodeId,
@@ -40,7 +41,10 @@ class NodeWorker():
         return self.mode
     
     def getNumberEvents(self):
-        return self.events
+        return int(self.events)
     
     def setNumberEvents(self):
         self.events = self.events+1
+        
+    def getAlgorithm(self):
+        return self.algorithm
