@@ -1,5 +1,5 @@
 # from asyncio.log import logger
-from datetime import datetime, timedelta
+from datetime import datetime
 import sys
 import threading
 from flask import Flask, request
@@ -14,7 +14,6 @@ import logging
 import requests
 import pandas as pd
 import dask.dataframe as dd
-from pandas.api.types import is_string_dtype
 
 app = Flask(__name__)
 app.debug = True
@@ -137,7 +136,7 @@ def loggerErrorSet(message):
     exc_type, exc_obj, exc_tb = sys.exc_info()
     lineError = exc_tb.tb_lineno
     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-    msg = "{} - LineCode={} - CODE_ERROR {}".format(fname,lineError, message)
+    msg = "{} - {} - CODE_ERROR {}".format(fname,lineError, message)
     loggerError.error(msg)
     
 def loggerErrorFlag(message):
@@ -443,9 +442,8 @@ def fillterEspatial():
                     sourcesDF.append(df)                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
                     endGroupTime = time.time()                                                      # FIN DEL TIEMPO DE AGRUPADO
                     processTimeSum = processTimeSum + (endGroupTime - startGruopTime)               # SUMA DEL TIEMPO DE AGRUPADO
-                    processTimeSum = processTimeSum + balancerTime
                 # -------- LECTURA FILTRO
-            except Exception as e:  
+            except Exception as e:
                             message = "ERROR READ_FILTERING_ENDPOINT {} {}".format(nodeId,e)
                             loggerErrorSet(message)
                             return jsonify({"response":message}), 501
@@ -482,7 +480,7 @@ def fillterEspatial():
                             sendJson = requestJson.copy()
                             sendJson['cubes'] = cubesNew
                             loggerErrorFlag(sendJson['cubes'].keys())
-                            url = node.getURL(mode=modeToSend, endPoint=endPoint)
+                            url = node.getURL(mode=nodeLocal.getMode(), endPoint="response")
                             startRequestTime = time.time()
                             sendJson["startRequestTime"]=startRequestTime
                             t = threading.Thread(target=sendData, args=(url,sendJson,numberEvent,balanceData,node.getID()))
@@ -536,7 +534,7 @@ def fillterEspatial():
 
 # -------- FUNCION PARA FILTRAR MEDIANTE EL TEMPORAL
 @app.route('/balance/temporal',methods = ['POST'])
-def fillterTemporal():
+def balanceTemporal():
     global nodeLocal
     global sourcePath
     global nodeManager
@@ -553,149 +551,39 @@ def fillterTemporal():
         balanceType = paramsOrchestrator["balanceType"][0]          # TIPO DE BALANCEO {FLT_1, FLT_2, ... ,FLT_n}
         paramsBalancer = paramsOrchestrator["paramsBalancer"][0]    # PARAMETROS DEL BALANCEO [paramsFLT_1]
         readTimeSum = 0
-        processTimeSum = 0
         if (balanceType == "TEMPORAL"):
             # cargamos los cubes
-            sourcesDF = list()                                                                       # LISTADO DE DATAFRAMES
+            sourcesDF = list()                                                       # LISTADO DE DATAFRAMES
             try:
-                # -------- LECTURA
-                sourcesFiles = mtd.getItems(itemName="nameFile", cubes=cubes)                        # OBTENEMOS LOS NOMBRES DE LOS ARCHIVOS DE LAS FUENETES DE DATOS
-                dfs = list()
+                # -------- LECTURA FILTRO
+                sourcesFiles = mtd.getItems(itemName="nameFile",cubes=cubes)                        # OBTENEMOS LOS NOMBRES DE LOS ARCHIVOS DE LAS FUENETES DE DATOS
                 for posSource,source in enumerate(sourcesFiles):
                     startReadTime = time.time()                                                     # INICIO DEL TIEMPO DE LECTURA
                     if(nodeManager.getID()=="-"):                                                   # VERIFICA SI EXISTE UN NODO MANAGER
                         # df = pd.read_csv('.{}/{}'.format(sourcePath,source))
-                        pathString = ".{}/{}".format(sourcePath,source)
-                        df = dd.read_csv(pathString, assume_missing=True)
+                        df = dd.read_csv('.{}/{}'.format(sourcePath,source))
                     else:                                                                           # SI EXISTE CONCATENA EL NODE ID DEL MANAGER
                         # df = pd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
-                        df = dd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source),assume_missing=True)
-                    sourcesDF.append(df)                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+                        df = dd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
                     endReadTime = time.time()                                                       # FIN DEL TIEMPO DE LECTURA
                     readTimeFile = (endReadTime - startReadTime)
                     readTimeSum = readTimeSum + readTimeFile
-                # -------- LECTURA
-            except Exception as e:
-                message = "ERROR READ_ENDPOINT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 501
-            
-            
-            try:
-                # -------- RANGOS
-                startRangeTime = time.time()                        # TIEMPO DE INICIO DEL RANGOS
-                startTime = paramsBalancer["startTime"]              # FECHA DE INICIO
-                endTime = paramsBalancer["endTime"]                 # FECHA DE FIN
-                typeDate = paramsBalancer["typeDate"]               # TIPO DE FECHA PARA GENERAR LOS RANGOS (ANIO, MES O DIA)
-                nRange = paramsBalancer["nRange"]                   # TAMAÑO DE LOS RANGOS DE FECHA
-                ranges = mtd.generateRangos(inicio=startTime,
-                                            fin=endTime,
-                                            tipo=typeDate,
-                                            n=nRange)
-                endRangeTime = time.time()
-                processTimeSum = processTimeSum + (endRangeTime - startRangeTime)
-                # -------- RANGOS
-            except Exception as e:
-                message = "ERROR RANGE_ENDPOINT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 502
-            
-            
-            try:
-                # -------- FILTRADO
-                startFilteringTime = time.time()                                            # TIEMPO DE INICIO DEL RANGOS
-                dfByDates = list()
+                # -------- LECTURA FILTRO
                 
-                for posRange, valRange in enumerate(ranges):
-                    dfByDateAux = list()
-                    
-                    for posDf, df in enumerate(sourcesDF):
-                        
-                        cubeName = mtd.getNameCube(cubes=cubes,posCube=posDf)           # OBTENMOS EL NOMBRE DEL CUBO
-                        variableToBalance = cubes[cubeName]["Temporal"]                 # VARIABLE A BALANCEAR
-                        
-                        if(variableToBalance == "NO_TEMPORAL"):
-                            df_aux = df.copy()
-                            loggerErrorFlag("{}".format(len(df_aux.index)))
-                            break
-                        elif (is_string_dtype(df[variableToBalance])==False): 
-                            # df[variableToBalance] = dd.to_datetime(df[variableToBalance], infer_datetime_format=True)
-                            df[variableToBalance] = df[variableToBalance].astype(str)
-                        
-                        if (posRange==len(ranges)-1):                                                     # SE VERIFICA SI ES EL ULTIMO RANGO
-                            start = ranges[(posRange)].strftime('%Y-%m-%d %H:%M:%S')                    # TOMAMOS EL RANGO ACTUAL
-                            end = endTime                                                               # TOMAMOS LA ULTIMA FECHA DE LOS RANGOS
-                            mask = (df[variableToBalance] > start) & (df[variableToBalance] <= end)     # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
-                        
-                        elif (posRange==0):                                                             # SI ES LA PRIEMRA POSICION NOS RETRASAMOS UN RANGO
-                            start = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S') - timedelta(days=1)                    # INICIO DE FECHA ENTRANTE
-                            start = start.strftime('%Y-%m-%d %H:%M:%S')
-                            end = ranges[(posRange)].strftime('%Y-%m-%d %H:%M:%S')                      # TOMAMOS EL RANGO ACTUAL
-                            mask = (df[variableToBalance] > start) & (df[variableToBalance] <= end)     # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
-                            
-                        else:                                                                   
-                            start = ranges[(posRange-1)].strftime('%Y-%m-%d %H:%M:%S')                  # SALVAMOS LA FECHA ANTERIOR
-                            end = ranges[(posRange)].strftime('%Y-%m-%d %H:%M:%S')                      # TOMAMOS EL RANGO ACTUAL
-                            mask = (df[variableToBalance] > start) & (df[variableToBalance] <= end)     # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
-                        df_aux = df.loc[mask]                                                           # APARTAMOS LOS VALORES DEL TOTAL DEL REGISTRO
-                        # loggerErrorFlag(df.dtypes)
-                        loggerErrorFlag("{} - {}".format((start),(end)))
-                        loggerErrorFlag("{}".format(len(df_aux.index)))
-                        directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), "prueba_{}_{}_{}".format(cubeName,posDf,posRange)) # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL
-                        df_aux.to_csv(directoryFile, index = False,single_file=True)
-                        dfByDateAux.append(df_aux)                                                      # GUARDAMOS LOS VALORES DEL TOTAL DEL REGISTRO
-                    
-                    dfByDates.append(dfByDateAux)
-                
-                endFilteringTime = time.time()
-                processTimeSum = processTimeSum + (endFilteringTime - startFilteringTime)
-                # -------- FILTRADO
+                # -------- PROCESO AGRUPADO
+                    startGruopTime = time.time()                                                    # INICIO DEL TIEMPO DE AGRUPADO
+                    df = df.groupby(variablesToBalance[posSource])                                  # AGRUPAMIENTO DE LOS VALORES
+                    sourcesDF.append(df)                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+                    endGroupTime = time.time()                                                      # FIN DEL TIEMPO DE AGRUPADO
+                    processTimeSum = processTimeSum + (endGroupTime - startGruopTime)               # SUMA DEL TIEMPO DE AGRUPADO
+                # -------- LECTURA FILTRO
             except Exception as e:
-                message = "ERROR FILTERING_ENDPOINT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 502
-            
-            
-            try:
-                # -------- BALANCEO
-                startBalancer = time.time()
-                workersCant = len(nodes)                            # CANTIDAD DE NODOS PRESENTADOS
-                initBoxWorkers = mtd.initWorkresArray(workersCant)  # CREAMOS LAS CAJAS VACIAS DE LOS TRABAJADOR PARA EL BALANEO DE CARGA
-                algorithmBalancer = nodeLocal.getAlgorithm()        # ALGORITMO DE BALANEO
-                variablesToBalance=mtd.getItems(itemName="Temporal",cubes=cubes)            # OBTENEMOS LA COLUMNA DE CADA FUENTE
-                # NO FUNCIONAL AUN TC
-                if (algorithmBalancer=="TC"):
-                    sourcesFiles = mtd.getItems(itemName="nameFile",cubes=cubes)            # OBTENEMOS LOS NOMBRES DE LOS ARCHIVOS DE LAS FUENETES DE DATOS
-                    loggerErrorFlag(len(dfByDates)==len(ranges))
-                    loggerErrorFlag(len(dfByDates[0][0].index))
-                    balanceData = mtd.toBalanceDataTC_Temporal(initWorkers=initBoxWorkers,  # CAJAS VACIAS PARA LAS FUENTES
-                                                balanceData=ranges,                         # ALGORITMO DE BALANCEO
-                                                sources=dfByDates)                       # NOMBRE DE LOS ARCHIVOS DE CADA FUENTE
-                else:
-                    balanceData = mtd.toBalanceData(initWorkers=initBoxWorkers,
-                                                balanceData=ranges,
-                                                algorithm=algorithmBalancer)
-                endBalancer = time.time()
-                balancerTime = endBalancer - startBalancer
-                processTimeSum = processTimeSum + balancerTime
-                # -------- BALANCEO
-                # loggerErrorFlag(balanceData)
-                loggerErrorFlag(len(balanceData))
-                loggerErrorFlag("{} - {}".format(len(balanceData[0]), "Primera Pos"))
-                # -------- 
-                del paramsOrchestrator["balanceType"][0]            # ELIMINAMOS BALANCEO REALIZADO
-                modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
-                endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
-                del requestJson["PIPELINE"][0]                      # ELIMINAMOS EL ENDPOINT DE LOS TRABAJADOR
-                return "ok"
-            except Exception as e:
-                message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 502
-            
+                            message = "ERROR READ_FILTERING_ENDPOINT {} {}".format(nodeId,e)
+                            loggerErrorSet(message)
+                            return jsonify({"response":message}), 501
         else:
             e="NOT ESPATIAL"
-            message = "ERROR READ_PARAMS_ENDPOINT {} {}".format(nodeId,e)
+            message = "ERROR READ_ENDPOINT {} {}".format(nodeId,e)
             loggerErrorSet(message)
             return jsonify({"response":message}), 501
         # -------- LECTURA
@@ -704,23 +592,9 @@ def fillterTemporal():
         readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
         readTimeSum = readTimeSum + readTime
     except Exception as e:
-        message = "ERROR READ_PARAMS_ENDPOINT {} {}".format(nodeId,e)
+        message = "ERROR READ_PARAMAS_ENDPOINT {} {}".format(nodeId,e)
         loggerErrorSet(message)
         return jsonify({"response":message}), 501
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
 
 @app.route('/prueba', methods = ['POST'])
@@ -864,4 +738,4 @@ def presentation():
 
 if __name__ == '__main__':
     presentation()
-    app.run(host= '0.0.0.0',port=state['dockerPort'],debug=False)
+    app.run(host= '0.0.0.0',port=state['dockerPort'],debug=False,use_reloader=False)

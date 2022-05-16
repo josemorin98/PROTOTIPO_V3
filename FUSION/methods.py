@@ -165,48 +165,6 @@ def TwoChoicesV4(cargas, traza, sources, sourcePath, varSpatial):
         return cargas
     except Exception as e:
         return e
-
-def TwoChoicesV4_temporal(cargas, traza, sources):
-    #varSpatial es arreglo
-    try:
-        workers = len(cargas)
-        cantWorkers = np.zeros(workers)
-        select_bin = 0
-        select_bin2 = 0
-        aux = True
-        # si es un workers
-        if(workers==1):
-            # for x in range(len(traza.iloc[:,0])):
-            #     cargas[0].append(traza[0][x])
-            return sources
-        else:
-            # for x in range(len(traza.iloc[:,0])):
-            for posTraza, xTraza in enumerate(traza):
-                # se selecciona el primer trabajador aleatorio
-                select_bin = random.randint(0, workers-1)
-                while(aux):
-                    # se selecciona el segundo trabajador
-                    select_bin2 = random.randint(0, workers-1)
-                    # si es diferente rompe el ciclo
-                    if(select_bin != select_bin2):
-                        aux = False
-                # revisamos la cantidad de registros con esa clase para cada fuente
-                cantRows=0
-                # print("{} - {}".format(select_bin, select_bin2))
-                for pos,src in enumerate(sources[posTraza]):
-                    # cantidad de registros
-                    cantRows = cantRows + len(src.index)
-                
-                if( cantWorkers[select_bin] < cantWorkers[select_bin2]):
-                    cargas[select_bin].append(sources[posTraza])
-                    cantWorkers[select_bin] = cantWorkers[select_bin]+cantRows
-                else:
-                    cargas[select_bin2].append(sources[posTraza])
-                    cantWorkers[select_bin2] = cantWorkers[select_bin2]+cantRows
-                aux = True
-        return cargas
-    except Exception as e:
-        return e
     
 
 def toBalanceData(initWorkers,balanceData,algorithm):
@@ -216,13 +174,8 @@ def toBalanceData(initWorkers,balanceData,algorithm):
         balancedData = PseudoRandomV2(cargas=initWorkers, traza=balanceData)
     return balancedData
 
-def toBalanceDataTC(initWorkers,balanceData,sources,sourcePath,varSpatial):
+def toBalanceDataTC(initWorkers,balanceData,algorithm,sources,sourcePath,varSpatial):
     balancedData = TwoChoicesV4(cargas=initWorkers, traza=balanceData, sources=sources, sourcePath=sourcePath,varSpatial=varSpatial)
-                            # (cargas=arrayWorkers, traza=list(toBalanceData), sources=sources,sourcePath=sourcePath, varSpatial=varSpatial)
-    return balancedData
-
-def toBalanceDataTC_Temporal(initWorkers,balanceData,sources):
-    balancedData = TwoChoicesV4_temporal(cargas=initWorkers, traza=balanceData, sources=sources)
                             # (cargas=arrayWorkers, traza=list(toBalanceData), sources=sources,sourcePath=sourcePath, varSpatial=varSpatial)
     return balancedData
 
@@ -248,13 +201,13 @@ def generateRangos(inicio, fin, tipo, n):
     fin = datetime.strptime(fin, "%Y-%m-%d %H:%M:%S") # fecha de fin (datetime)
     rangos = list()
     # division por anos
-    if(tipo=='Y'):
+    if(tipo=='anio'):
         rangos = pd.date_range(start=str_date(inicio), end=str_date(fin), freq=str(n)+'Y', closed='left').to_pydatetime()
     # division por meses
-    elif(tipo=='M'):
+    elif(tipo=='mes'):
         rangos = pd.date_range(start=str_date(inicio), end=str_date(fin), freq=str(n)+'M', closed='left').to_pydatetime()
     # division por dias
-    elif(tipo=='D'):
+    elif(tipo=='dia'):
         rangos = pd.date_range(start=str_date(inicio), end=str_date(fin), freq=str(n)+'D', closed='left').to_pydatetime()
     return rangos
 
