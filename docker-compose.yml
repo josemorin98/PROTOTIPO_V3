@@ -75,5 +75,31 @@ services:
     ports:
       - 5003:5000
 
+  node_4:
+    image: jmorin98/orchestrator
+    hostname: node_4
+    environment:
+      NODE_ID: node_4
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5004
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: orchestrator_0
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5001
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5004:5000
+
 networks:
   workers_v3:

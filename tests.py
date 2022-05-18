@@ -35,7 +35,7 @@ jsonSend = {
     "cubes":{
         "Suic_Medio_Derhab_tasasporsexo":{"nameFile":"Suic_Medio_Derhab_tasasporsexo.csv",
                    "Espatial":"nombre entidad",
-                   "Temporal":"anio",
+                   "Temporal":["anio","%Y"],
                    "Tranformation":{
                               "Fusion":{"columnFusion":"cve_ent_mun_x"}
                                     }

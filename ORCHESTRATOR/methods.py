@@ -195,7 +195,7 @@ def TwoChoicesV4_temporal(cargas, traza, sources):
                 # print("{} - {}".format(select_bin, select_bin2))
                 for pos,src in enumerate(sources[posTraza]):
                     # cantidad de registros
-                    cantRows = cantRows + len(src.index)
+                    cantRows = cantRows + len(src[0].index)
                 
                 if( cantWorkers[select_bin] < cantWorkers[select_bin2]):
                     cargas[select_bin].append(sources[posTraza])
@@ -241,6 +241,18 @@ def readColumnsToBalance(sourcePath,fuentes,variable_to_balance):
 # Funcion que nos ayuda a reducir el codigo para converit un datetime to string en el formato estandar
 def str_date(date):
     return date.strftime("%Y-%m-%d %H:%M:%S")
+
+def getStartEndTime(posRange, ranges, startTime):
+    if (posRange==0):                                                       # SI ES LA PRIEMRA POSICION NOS RETRASAMOS UN RANGO
+        start = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')           # INICIO DE FECHA ENTRANTE
+        start = start.strftime('%Y-%m-%d %H:%M:%S')
+        end = ranges[(posRange)].strftime('%Y-%m-%d %H:%M:%S')              # TOMAMOS EL RANGO ACTUAL
+        conditional = False
+    else:
+        start = ranges[(posRange-1)].strftime('%Y-%m-%d %H:%M:%S')                      # SALVAMOS LA FECHA ANTERIOR
+        end = ranges[(posRange)].strftime('%Y-%m-%d %H:%M:%S')                          # TOMAMOS EL RANGO ACTUAL
+        conditional = True
+    return start, end, conditional
 
 # Funcion que nos genera los rangos de las fechas
 def generateRangos(inicio, fin, tipo, n):
