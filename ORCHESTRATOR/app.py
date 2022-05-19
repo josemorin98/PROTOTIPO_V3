@@ -450,7 +450,7 @@ def fillterEspatial():
                             loggerErrorSet(message)
                             return jsonify({"response":message}), 501
             
-            # iteracion de nodos
+            # -------- ITERACION DE NODOS
             try:
                 startFilteringTime = time.time()
                 for valueGroup in range(mtd.maxValueInList(balanceData)):
@@ -477,6 +477,7 @@ def fillterEspatial():
                                 rowByEspatial.to_csv(directoryFile, index = False,single_file=True)
                         
                         try:
+                        
                         # -------- COMUNICATION ENVIO DEL FILTERADO
                             startComunicationTime = time.time()
                             sendJson = requestJson.copy()
@@ -490,14 +491,16 @@ def fillterEspatial():
                             endComunicationTime = time.time()
                             comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
                         # -------- COMUNICATION ENVIO DEL FILTERADO
+                        
                         except Exception as e:
                             message = "ERROR COMUNICATION_ENDPONIT {} {}".format(nodeId,e)
                             loggerErrorSet(message)
-                            return jsonify({"response":message}), 502
+                            return jsonify({"response":message}), 503
                         
                 endFilteringTime = time.time()                        
                 filteringTime = (endFilteringTime - startFilteringTime) - comunicationTimeSum
                 processTimeSum = processTimeSum + filteringTime
+            # -------- ITERACION DE NODOS
             except Exception as e:
                 message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
                 loggerErrorSet(message)
@@ -520,12 +523,13 @@ def fillterEspatial():
                             nodeId=nodeId)                              # ID DEL NODO TRABAJADOR
         nodeLocal.setNumberEvents()                                     # SE INCREMENTA EL EVENTO CUANDO TERMINA EL PROCESO
         loggerInfoSet(message=messageInfo)
+        return jsonify(messageInfo),200
     except Exception as e:
         message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
         loggerErrorSet(message)
         return jsonify({"response":message}), 502
     
-    return jsonify(),200
+    
 
 
 
@@ -564,168 +568,27 @@ def fillterTemporal():
         if (balanceType == "TEMPORAL"):
             
             sourcesDF = list()                                                                       # LISTADO DE DATAFRAMES
-            try:
-                # -------- LECTURA
-                sourcesFiles = mtd.getItems(itemName="nameFile", cubes=cubes)                        # OBTENEMOS LOS NOMBRES DE LOS ARCHIVOS DE LAS FUENETES DE DATOS
-                dfs = list()
-                for posSource,source in enumerate(sourcesFiles):
-                    startReadTime = time.time()                                                     # INICIO DEL TIEMPO DE LECTURA
-                    if(nodeManager.getID()=="-"):                                                   # VERIFICA SI EXISTE UN NODO MANAGER
-                        # df = pd.read_csv('.{}/{}'.format(sourcePath,source))
-                        pathString = ".{}/{}".format(sourcePath,source)
-                        df = dd.read_csv(pathString, assume_missing=True)
-                    else:                                                                           # SI EXISTE CONCATENA EL NODE ID DEL MANAGER
-                        # df = pd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
-                        df = dd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source),assume_missing=True)
-                    sourcesDF.append(df)                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
-                    endReadTime = time.time()                                                       # FIN DEL TIEMPO DE LECTURA
-                    readTimeFile = (endReadTime - startReadTime)
-                    readTimeSum = readTimeSum + readTimeFile
-                # -------- LECTURA
-            except Exception as e:
-                message = "ERROR READ_ENDPOINT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 501
             
-            
-            try:
-                # -------- RANGOS
-                startRangeTime = time.time()                            # TIEMPO DE INICIO DEL RANGOS
-                startTime = paramsBalancer["startTime"]                 # FECHA DE INICIO
-                endTime = paramsBalancer["endTime"]                     # FECHA DE FIN
-                typeDate = paramsBalancer["typeDate"]                   # TIPO DE FECHA PARA GENERAR LOS RANGOS (ANIO, MES O DIA)
-                nRange = paramsBalancer["nRange"]                       # TAMAÑO DE LOS RANGOS DE FECHA
-                ranges = mtd.generateRangos(inicio=startTime,
-                                            fin=endTime,
-                                            tipo=typeDate,
-                                            n=nRange)
-                fin = datetime.strptime(endTime, "%Y-%m-%d %H:%M:%S")   # FECHA DE FIN (DATETIME)
-                ranges = np.append(ranges,fin)
-                loggerErrorFlag(ranges)
-                
-                endRangeTime = time.time()
-                processTimeSum = processTimeSum + (endRangeTime - startRangeTime)
-                # -------- RANGOS
-            except Exception as e:
-                message = "ERROR RANGE_ENDPOINT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 502
-            
-            
-            try:
-                # -------- FILTRADO
-                startFilteringTime = time.time()                                            # TIEMPO DE INICIO DEL RANGOS
-                dfByDates = list()
-                
-                for posRange, valRange in enumerate(ranges):
-                    dfByDateAux = list()
-                    
-                    for posDf, df in enumerate(sourcesDF):
-                        
-                        cubeName = mtd.getNameCube(cubes=cubes,posCube=posDf)           # OBTENMOS EL NOMBRE DEL CUBO
-                        variableToBalance = cubes[cubeName]["Temporal"][0]  if isinstance(cubes[cubeName]["Temporal"], list) else cubes[cubeName]["Temporal"]           # VARIABLE A BALANCEAR
-                        
-                        start, end, conditional = mtd.getStartEndTime(posRange=posRange, 
-                                                                    ranges=ranges,
-                                                                    startTime=startTime)
-                        
-                        if(variableToBalance == "NO_TEMPORAL"):
-                            df_aux = df.copy()
-                            nameFile = "temporal_{}_{}_{}".format(cubeName,dateString(start),dateString(end))   # NOMBRE DEL ARCHIVO FRGAMENTADO POR UN TEMPORAL
-                            dfByDateAux.append([df_aux, nameFile])                                              # GUARDAMOS LOS VALORES DEL TOTAL DEL REGISTRO
-                            break
-                        else:     
-                            formatDate = cubes[cubeName]["Temporal"][1]                                     # FORMATO DE LA FECHA EXPUESTO EN LA FUENTE
-                            df[variableToBalance] = dd.to_datetime(df[variableToBalance],                   # CONVERTIRMOS LA COLUMNA EN DATETIME FORMAT 
-                                                                   format=formatDate)    
-                        
-                        if (conditional==False):                                                            # SI ES LA PRIEMRA POSICION NOS RETRASAMOS UN RANGO
-                            # start = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')                     # INICIO DE FECHA ENTRANTE
-                            # start = start.strftime('%Y-%m-%d %H:%M:%S')
-                            # end = ranges[(posRange)].strftime('%Y-%m-%d %H:%M:%S')                        # TOMAMOS EL RANGO ACTUAL
-                            mask = (df[variableToBalance] >= start) & (df[variableToBalance] < end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
-                            
-                        else:                                                                   
-                            # start = ranges[(posRange-1)].strftime('%Y-%m-%d %H:%M:%S')                    # SALVAMOS LA FECHA ANTERIOR
-                            # end = ranges[(posRange)].strftime('%Y-%m-%d %H:%M:%S')                        # TOMAMOS EL RANGO ACTUAL
-                            mask = (df[variableToBalance] > start) & (df[variableToBalance] <= end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
-                        
-                        loggerErrorFlag("{} - {}".format((start),(end)))
-                        df_aux = df.loc[mask]                                                               # APARTAMOS LOS VALORES DEL TOTAL DEL REGISTRO
-                        nameFile = "temporal_{}_{}_{}".format(cubeName,dateString(start),dateString(end))   # NOMBRE DEL ARCHIVO FRGAMENTADO POR UN TEMPORAL
-                        # directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)   # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL
-                        # df_aux.to_csv(directoryFile, index = False,single_file=True)
-                        dfByDateAux.append([df_aux, nameFile])                                              # GUARDAMOS LOS VALORES DEL TOTAL DEL REGISTRO
-                        
-                    dfByDates.append(dfByDateAux)
-                endFilteringTime = time.time()
-                processTimeSum = processTimeSum + (endFilteringTime - startFilteringTime)
-                # -------- FILTRADO
-            except Exception as e:
-                message = "ERROR FILTERING_ENDPOINT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 502
-            
-            
-            try:
-                # -------- BALANCEO
-                startBalancer = time.time()
-                workersCant = len(nodes)                            # CANTIDAD DE NODOS PRESENTADOS
-                initBoxWorkers = mtd.initWorkresArray(workersCant)  # CREAMOS LAS CAJAS VACIAS DE LOS TRABAJADOR PARA EL BALANEO DE CARGA
-                algorithmBalancer = nodeLocal.getAlgorithm()        # ALGORITMO DE BALANEO
-                # variablesToBalance=mtd.getItems(itemName="Temporal",cubes=cubes)          # OBTENEMOS LA COLUMNA DE CADA FUENTE
-                if (algorithmBalancer=="TC"):
-                    sourcesFiles = mtd.getItems(itemName="nameFile",cubes=cubes)            # OBTENEMOS LOS NOMBRES DE LOS ARCHIVOS DE LAS FUENETES DE DATOS
-                    balanceData = mtd.toBalanceDataTC_Temporal(initWorkers=initBoxWorkers,  # CAJAS VACIAS PARA LAS FUENTES
-                                                balanceData=ranges,                         # ALGORITMO DE BALANCEO
-                                                sources=dfByDates)                          # NOMBRE DE LOS ARCHIVOS DE CADA FUENTE
-                else:
-                    balanceData = mtd.toBalanceData(initWorkers=initBoxWorkers,             # CAJAS VACIAS PARA LAS FUENTES
-                                                balanceData=ranges,                         # NOMBRE DE LOS ARCHIVOS DE CADA FUENTE
-                                                algorithm=algorithmBalancer)                # ALGORITHM DE BALANCEO
-                
-                endBalancer = time.time()                                                   # TIEMPO DE TERMINO DEL BALANCEO
-                balancerTime = endBalancer - startBalancer                                  # TIEMPO TOTAL DEL BALANCEO
-                processTimeSum = processTimeSum + balancerTime                              # TIEMPO TOTAL DE PROCESOS
-                # -------- BALANCEO
-                
-                
-                # --------  COMUNICACION
-                del paramsOrchestrator["balanceType"][0]            # ELIMINAMOS BALANCEO REALIZADO
-                modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
-                endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
-                del requestJson["PIPELINE"][0]                      # ELIMINAMOS EL ENDPOINT DE LOS TRABAJADOR
-                
-                try:
-                    loggerErrorFlag("{} -- {} ".format(len(balanceData),len(initBoxWorkers)))
-                    for posWorker,dataWorker in enumerate(balanceData):                 # POSICIONES POR TRABAJADOR
-                        loggerErrorFlag("-------- Worker {}".format(posWorker))
-                        for dataBalanceo in dataWorker:                                  # POSICIONES POR BALANCEO
-                            loggerErrorFlag(" - {}".format(type(dataBalanceo)))
-                            for data in dataBalanceo:                                    # POSICIONES POR CUBO
-                                directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), data[1])     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL
-                                data[0].to_csv(directoryFile, index = False,single_file=True) 
-                                break
-                        
-                except Exception as e:
-                    message = "ERROR COMUNICATION_ENDPONIT {} {}".format(nodeId,e)
-                    loggerErrorSet(message)
-                    return jsonify({"response":message}), 502
-    
-                
-                
-                return "ok"
-            except Exception as e:
-                message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
-                loggerErrorSet(message)
-                return jsonify({"response":message}), 502
-            
+            # -------- LECTURA
+            sourcesFiles = mtd.getItems(itemName="nameFile", cubes=cubes)                        # OBTENEMOS LOS NOMBRES DE LOS ARCHIVOS DE LAS FUENETES DE DATOS
+            dfs = list()
+            for posSource,source in enumerate(sourcesFiles):
+                startReadTime = time.time()                                                     # INICIO DEL TIEMPO DE LECTURA
+                if(nodeManager.getID()=="-"):                                                   # VERIFICA SI EXISTE UN NODO MANAGER
+                    # df = pd.read_csv('.{}/{}'.format(sourcePath,source))
+                    pathString = ".{}/{}".format(sourcePath,source)
+                    df = dd.read_csv(pathString, assume_missing=True)
+                else:                                                                           # SI EXISTE CONCATENA EL NODE ID DEL MANAGER
+                    # df = pd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
+                    df = dd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source),assume_missing=True)
+                sourcesDF.append(df)                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+            # -------- LECTURA
         else:
             e="NOT ESPATIAL"
             message = "ERROR READ_PARAMS_ENDPOINT {} {}".format(nodeId,e)
             loggerErrorSet(message)
             return jsonify({"response":message}), 501
-        # -------- LECTURA
+        
         
         endReadTime = time.time()                               # FIN DE LETURA
         readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
@@ -734,20 +597,166 @@ def fillterTemporal():
         message = "ERROR READ_PARAMS_ENDPOINT {} {}".format(nodeId,e)
         loggerErrorSet(message)
         return jsonify({"response":message}), 501
+            
+             
+    try:
+        # -------- RANGOS
+        startRangeTime = time.time()                            # TIEMPO DE INICIO DEL RANGOS
+        startTime = paramsBalancer["startTime"]                 # FECHA DE INICIO
+        endTime = paramsBalancer["endTime"]                     # FECHA DE FIN                
+        typeDate = paramsBalancer["typeDate"]                   # TIPO DE FECHA PARA GENERAR LOS RANGOS (ANIO, MES O DIA)
+        nRange = paramsBalancer["nRange"]                       # TAMAÑO dE LOS RANGOS DE FECHA
+        ranges = mtd.generateRangos(inicio=startTime,
+                                            fin=endTime,
+                                            tipo=typeDate,
+                                            n=nRange)
+        fin = datetime.strptime(endTime, "%Y-%m-%d %H:%M:%S")   # FECHA DE FIN (DATETIME)
+        ranges = np.append(ranges,fin)
+        loggerErrorFlag(ranges)
+                
+        endRangeTime = time.time()
+        processTimeSum = processTimeSum + (endRangeTime - startRangeTime)
+        # -------- RANGOS
+    except Exception as e:
+        message = "ERROR RANGE_ENDPOINT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 502
     
+    try:
+        # -------- FILTRADO
+        startFilteringTime = time.time()                                            # TIEMPO DE INICIO DEL RANGOS
+        dfByDates = list()
+                
+        for posRange, valRange in enumerate(ranges):
+            dfByDateAux = list()
+                    
+            for posDf, df in enumerate(sourcesDF):
+                        
+                cubeName = mtd.getNameCube(cubes=cubes,posCube=posDf)           # OBTENMOS EL NOMBRE DEL CUBO
+                variableToBalance = cubes[cubeName]["Temporal"][0]  if isinstance(cubes[cubeName]["Temporal"], list) else cubes[cubeName]["Temporal"]           # VARIABLE A BALANCEAR
+                        
+                start, end, conditional = mtd.getStartEndTime(posRange=posRange, 
+                                                                ranges=ranges,
+                                                                startTime=startTime)
+                        
+                if(variableToBalance == "NO_TEMPORAL"):
+                    df_aux = df.copy()
+                    dfByDateAux.append([df_aux, cubeName, start, end])                              # GUARDAMOS LOS VALORES DEL TOTAL DEL REGISTRO
+                    break
+                else:     
+                    formatDate = cubes[cubeName]["Temporal"][1]                                     # FORMATO DE LA FECHA EXPUESTO EN LA FUENTE
+                    df[variableToBalance] = dd.to_datetime(df[variableToBalance],                   # CONVERTIRMOS LA COLUMNA EN DATETIME FORMAT 
+                                                         format=formatDate)    
+                        
+                if (conditional==False):                                                            # SI ES LA PRIEMRA POSICION NOS RETRASAMOS UN RANGO
+                    mask = (df[variableToBalance] >= start) & (df[variableToBalance] < end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
+                            
+                else:                                                                   
+                    mask = (df[variableToBalance] > start) & (df[variableToBalance] <= end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
+                        
+                loggerErrorFlag("{} - {}".format((start),(end)))
+                df_aux = df.loc[mask]                                                               # APARTAMOS LOS VALORES DEL TOTAL DEL REGISTRO
+                dfByDateAux.append([df_aux, cubeName, start, end])                                  # GUARDAMOS LOS VALORES DEL TOTAL DEL REGISTRO
+                        
+            dfByDates.append(dfByDateAux)
+        endFilteringTime = time.time()
+        processTimeSum = processTimeSum + (endFilteringTime - startFilteringTime)
+        # -------- FILTRADO
+    except Exception as e:
+        message = "ERROR FILTERING_ENDPOINT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 502
+            
+            
+    try:
+        # -------- BALANCEO
+        startBalancer = time.time()
+        workersCant = len(nodes)                            # CANTIDAD DE NODOS PRESENTADOS
+        initBoxWorkers = mtd.initWorkresArray(workersCant)  # CREAMOS LAS CAJAS VACIAS DE LOS TRABAJADOR PARA EL BALANEO DE CARGA
+        algorithmBalancer = nodeLocal.getAlgorithm()        # ALGORITMO DE BALANEO
+        algorithmBalancer="TC"
+        if (algorithmBalancer=="TC"):
+            sourcesFiles = mtd.getItems(itemName="nameFile",cubes=cubes)            # OBTENEMOS LOS NOMBRES DE LOS ARCHIVOS DE LAS FUENETES DE DATOS
+            balanceData = mtd.toBalanceDataTC_Temporal(initWorkers=initBoxWorkers,  # CAJAS VACIAS PARA LAS FUENTES
+                                                balanceData=ranges,                         # ALGORITMO DE BALANCEO
+                                                sources=dfByDates)                          # NOMBRE DE LOS ARCHIVOS DE CADA FUENTE
+        else:
+            balanceData = mtd.toBalanceData(initWorkers=initBoxWorkers,             # CAJAS VACIAS PARA LAS FUENTES
+                                                balanceData=ranges,                         # NOMBRE DE LOS ARCHIVOS DE CADA FUENTE
+                                                algorithm=algorithmBalancer)                # ALGORITHM DE BALANCEO
+                
+        endBalancer = time.time()                                                   # TIEMPO DE TERMINO DEL BALANCEO
+        balancerTime = endBalancer - startBalancer                                  # TIEMPO TOTAL DEL BALANCEO
+        processTimeSum = processTimeSum + balancerTime                              # TIEMPO TOTAL DE PROCESOS
+        # -------- BALANCEO
+                
+                
+                
+        del paramsOrchestrator["balanceType"][0]            # ELIMINAMOS BALANCEO REALIZADO
+        modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
+        endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
+        del requestJson["PIPELINE"][0]                      # ELIMINAMOS EL ENDPOINT DE LOS TRABAJADOR
+                
+        # -------- ITERACION DE NODOS
+        try:
+            comunicationTimeSum = 0
+            loggerErrorFlag("{} -- {} ".format(len(balanceData),len(initBoxWorkers)))
+            for posWorker,dataWorker in enumerate(balanceData):                     # POSICIONES POR TRABAJADOR
+                loggerErrorFlag("-------- Worker {}".format(posWorker))
+                for dataBalanceo in dataWorker:                                     # POSICIONES POR BALANCEO
+                    loggerErrorFlag(" - {}".format(type(dataBalanceo)))
+                    cubesNew = {}
+                    for data in dataBalanceo:                                       # POSICIONES POR CUBO DE DATOS (FUENTES)
+                        rowByTemporal = data[0]                                     # REGISTROS DEL RANGO
+                        cubeName = data[1]                                          # OBTENMOS EL NOMBRE DEL CUBO                     
+                        startFilterTime = data[2]                                   # RANGO DE INICIO
+                        endFilterTime = data[3]                                     # RANGO DE FIN
+                        nameFile = "{}_{}_{}".format(cubeName,
+                                                    dateString(startFilterTime),    # NOMBRE DEL ARCHIVO FRGAMENTADO POR UN TEMPORAL
+                                                    dateString(endFilterTime))   
+                        auxCube = cubes[cubeName].copy()                                                # GENERAMOS UNA COPIA DEL CUBO PARA TRABAJAR SOBRE ELLA
+                        auxCube["nameFile"] = "{}.csv".format(nameFile)                                                  # ASIGNAMOS EL NUEVO NOMBRE
+                        cubesNew[nameFile] = auxCube                                                    # ASIGNAMOS LOS VALORES
+                        loggerErrorFlag(cubesNew.keys())
+                        directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL
+                        rowByTemporal.to_csv(directoryFile, index = False,single_file=True)
+                            
+                    try:
+                    # -------- COMUNICATION ENVIO DEL FILTERADO
+                        node = nodes[posWorker] 
+                        startComunicationTime = time.time()
+                        sendJson = requestJson.copy()
+                        sendJson['cubes'] = cubesNew
+                        loggerErrorFlag(sendJson['cubes'].keys())
+                        url = node.getURL(mode=modeToSend, endPoint=endPoint)
+                        startRequestTime = time.time()
+                        sendJson["startRequestTime"]=startRequestTime
+                        t = threading.Thread(target=sendData, args=(url,sendJson,numberEvent,balanceData,node.getID()))
+                        t.start() 
+                        endComunicationTime = time.time()
+                        comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
+                    # -------- COMUNICATION ENVIO DEL FILTERADO
+                    except Exception as e:
+                        message = "ERROR COMUNICATION_ENDPONIT {} {}".format(nodeId,e)
+                        loggerErrorSet(message)
+                        return jsonify({"response":message}), 502
+                            
+                                
+            endFilteringTime = time.time()                        
+            filteringTime = (endFilteringTime - startFilteringTime) - comunicationTimeSum
+            processTimeSum = processTimeSum + filteringTime
+        # -------- ITERACION DE NODOS
+        except Exception as e:
+            message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
+            loggerErrorSet(message)
+            return jsonify({"response":message}), 502
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    except Exception as e:
+        message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 502        
+        
+        
     
 
 @app.route('/prueba', methods = ['POST'])
