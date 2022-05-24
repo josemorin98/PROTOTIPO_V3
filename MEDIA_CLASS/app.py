@@ -13,6 +13,7 @@ import node as node
 import logging
 import requests
 import pandas as pd
+import dask.dataframe as dd
 import numpy as np
 
 app = Flask(__name__)
@@ -30,6 +31,7 @@ presentationValue = mtd.trueOrFalse(os.environ.get('PRESENTATION',"0")) # PRESEN
 if (not os.path.exists(".{}/{}".format(sourcePath,nodeId))):
     os.mkdir(".{}/{}".format(sourcePath,nodeId))
 
+mtd.initEspatial()
 # -----------------------------------------------------------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 # -----------------------------------------------------------------------------------------------------------------------
@@ -345,21 +347,13 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
 # -----------------------------------------------------------------------------------------------------------------------
 
 
-# -------- FUNCION PARA FUSIONAR LAS FUENTES
-@app.route('/analytics/fusion', methods = ['POST'])
-def fusion():
-    """
-        END-POINT dedicado fusionar las fuentes de datos entrantes
-        
-        Tranformation json de entrada:
-            {
-                "fusion": [var1,var2,...,varN]
-            }
-        
-        Nota: 
+# -------- FUNCION PARA OBTENER UNA CLASE A PARTIT DE LA MEDIA DE UNA VARIABLE
+@app.route('/analytics/mediaClass', methods = ['POST'])
+def meanClass():
+    """_summary_
 
     Returns:
-        json: descripcion de los tiempos del proces
+        _type_: _description_
     """
     global nodeLocal
     global sourcePath
@@ -373,26 +367,18 @@ def fusion():
         requestJson = request.get_json()                            # RECIBIR LOS PARAMETROS
         startRequestTime = requestJson["startRequestTime"]          # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
         cubes = requestJson["cubes"]                                # CUBOS DE ENTRADA
-    
         readTimeSum = 0
-        # CARGAREMOS TODAS LAS FUENTES QUE TENGAN LA KEY DE FUSION
-        sourcesDF = list()                                                                       # LISTADO DE DATAFRAMES
-        startReadTime = time.time()                                                     # INICIO DEL TIEMPO DE LECTURA
-        for posCube, cubeName in enumerate(cubes.keys()):
-            cube = cubes[cubeName]
-            
-            if("Fusion" in cube["Tranformation"].keys()):    
-                source = cube["nameFile"]
-                loggerErrorFlag("---------------------------------------------------------------")
-                if(nodeManager.getID()=="-"):                                                   # VERIFICA SI EXISTE UN NODO MANAGER
-                    pathString = ".{}/{}".format(sourcePath,source)
-                    df = pd.read_csv(pathString)
-                
-                else:                                                                           # SI EXISTE CONCATENA EL NODE ID DEL MANAGER
-                    df = pd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
-                
-                sourcesDF.append([df,cubeName])                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+        
+        if (balanceType == "ESPATIAL"):
+            typeBalanceEspatial = paramsBalancer["typeEspatial"]                    # TIPO DE ESPACIAL
+            toBalanceData = mtd.typeBalnceEspatial(typeBalance=typeBalanceEspatial) # EXTRAMOS EL BALANCEO ESPACIAL
+        else:
+            e="NOT ESPATIAL"
+            message = "ERROR READ_ENDPOINT {} {}".format(nodeId,e)
+            loggerErrorSet(message)
+            return jsonify({"response":message}), 501
         # -------- LECTURA
+        
         endReadTime = time.time()                               # FIN DE LETURA
         readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
         readTimeSum = readTimeSum + readTime
@@ -401,40 +387,12 @@ def fusion():
         loggerErrorSet(message)
         return jsonify({"response":message}), 501
     
-    
-    try:
-        # -------- FUSION
-        startFusionTime = time.time()                               # TIEMPO DE INICIO DEL RANGOS
-        processTimeSum = 0
-        
-        for posSource,source in enumerate(sourcesDF):
-            cube = cubes[source[1]]
-            df = source[0]
-            if (posSource != 0):
-                column_right = cube['Tranformation']['Fusion']['columnFusion']
-                column_left = source_aux['Tranformation']['Fusion']['columnFusion']
-                df_aux = df_aux.merge(df, how="inner", 
-                            left_on=column_left,
-                            right_on=column_right)	
-            else:
-                df_aux = df.copy()
-                source_aux = cube.copy()
-                print(source[1])
+    return 1 
 
-        nameFile = "fusion_{}".format(time.time())
-        directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
-        df_aux.to_csv("{}".format(directoryFile), index=False)
-        endFusionTime = time.time()                                 # TIEMPO DE FIN DE LA FUSION
-        processTimeSum = processTimeSum + (endFusionTime - startFusionTime)
-        # -------- FUSION
-    except Exception as e:
-        message = "ERROR FUSION_ENDPOINT {} {}".format(nodeId,e)
-        loggerErrorSet(message)
-        return jsonify({"response":message}), 502
-    
-    
-    
-    return "ok"
+
+# -----------------------------------------------------------------------------------------------------------------------
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# -----------------------------------------------------------------------------------------------------------------------
 
 @app.route('/prueba', methods = ['POST'])
 def pruebaSend():

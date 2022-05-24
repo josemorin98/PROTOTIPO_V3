@@ -5,51 +5,42 @@ import socket
 
 headers = {'PRIVATE-TOKEN': '<your_access_token>', 'Content-Type':'application/json'}
 
-# jsonSend = {
-#     "paramsOrchestrator":{"balanceType":["TEMPORAL"],
-#                           "paramsBalancer":[
-#                               {"typeTemporal":""}
-#                                             ]
-#                           },
-#     "cubes":{
-#         "TasaD_preV3":{"nameFile":"TasaD_preV3.csv",
-#                    "Espatial":"nombre entidad",
-#                    "Temporal":"anio_ocur",
-#                    "Tranformation":{"PROCES_A":{"A":1,"B":2},
-#                                     "PROCES_B":{"A":3,"B":4}}
-#                    }
-#     },
-#     "PIPELINE":["/response"],
-#     "startRequestTime":time.time()
-# }
 
 jsonSend = {
-    "paramsOrchestrator":{"balanceType":["TEMPORAL"],
+    "paramsOrchestrator":{"balanceType":["TEMPORAL", "ESPATIAL"],
                           "paramsBalancer":
                               [{
-                              "startTime":"2000-01-01 00:00:00",
-                               "endTime":"2005-12-31 00:00:00",
+                              "startTime":"2001-01-01 00:00:00",
+                               "endTime":"2001-12-31 00:00:00",
                                "nRange":1,
-                               "typeDate":"Y"}]
+                               "typeDate":"Y"},
+                               {"typeEspatial": "STATE"}]
                           },
     "cubes":{
-        "Suic_Medio_Derhab_tasasporsexo":{"nameFile":"Suic_Medio_Derhab_tasasporsexo.csv",
-                   "Espatial":"nombre entidad",
-                   "Temporal":["anio","%Y"],
+        "df0_100000k":{"nameFile":"df0_100000k.csv",
+                   "Espatial":"state",
+                   "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
                    "Tranformation":{
-                              "Fusion":{"columnFusion":"cve_ent_mun_x"}
+                              "Fusion":{"columnFusion":["fecha","state"]}
                                     }
                    },
              
-        "Variables_Macroeconomicas":{"nameFile":"Variables Macroeconomicas.csv",
-                   "Espatial":"nombre entidad",
-                   "Temporal":"NO_TEMPORAL",
+        "df1_1000000k":{"nameFile":"df1_100000k.csv",
+                   "Espatial":"state",
+                   "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
                    "Tranformation":{
-                              "Fusion":{"columnFusion":"cve_ent_mun"}
+                              "Fusion":{"columnFusion":["fecha","state"]}
+                                    }
+                   },
+        "df2_1000000k":{"nameFile":"df2_100000k.csv",
+                   "Espatial":"state",
+                   "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
+                   "Tranformation":{
+                              "Fusion":{"columnFusion":["fecha","state"]}
                                     }
                    }
     },
-    "PIPELINE":["response"],
+    "PIPELINE":["balance/espatial","analytics/fusion"],
     "startRequestTime":time.time()
 }
 

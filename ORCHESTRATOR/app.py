@@ -350,6 +350,19 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
 # -------- FUNCION PARA FILTRAR MEDIANTE EL ESPACIAL
 @app.route('/balance/espatial',methods = ['POST'])
 def fillterEspatial():
+    """
+        END-POINT dedicado a fragmentación y distribusion de las fuentes de datos medainte
+        la condicional espacial, estadas deben estar etiquetadas conforme a un standar
+        dependeiendo la eleccion del usuario.
+        
+        Json de entrada:
+            {
+                "typeEspatial": "STATE" (string)
+            }
+
+    Returns:
+        json: descripcion de los tiempos del proces
+    """
     global nodeLocal
     global sourcePath
     global nodeManager
@@ -412,6 +425,7 @@ def fillterEspatial():
         
         #__________________ FILTRADO
         del paramsOrchestrator["balanceType"][0]            # ELIMINAMOS BALANCEO REALIZADO
+        del paramsOrchestrator["paramsBalancer"][0]         # ELIMINAMOS BALANCEO REALIZADO
         modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
         endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
         del requestJson["PIPELINE"][0]                      # ELIMINAMOS EL ENDPOINT DE LOS TRABAJADOR
@@ -543,6 +557,22 @@ def dateString(date):
 # -------- FUNCION PARA FILTRAR MEDIANTE EL TEMPORAL
 @app.route('/balance/temporal',methods = ['POST'])
 def fillterTemporal():
+    """
+    END-POINT dedicado a la fragmentación y distribusion de las fuentes de datos mediante 
+    una variable de temporal, cuenta con un formato estandar de YYYY-MM-DD 00:00:00, que 
+    en python se toma como %Y-%m-%d %H:%M:%S.
+
+    Json de entrada:
+            {   
+                "startTime":"2000-01-01 00:00:00", (string)
+                "endTime":"2005-12-31 00:00:00", (string)
+                "nRange":1, (int)
+                "typeDate":"Y" (string)
+            }
+            
+    Returns:
+        json: descripcion de los tiempos del proces
+    """
     global nodeLocal
     global sourcePath
     global nodeManager
@@ -649,7 +679,7 @@ def fillterTemporal():
                                                          format=formatDate)    
                         
                 if (conditional==False):                                                            # SI ES LA PRIEMRA POSICION NOS RETRASAMOS UN RANGO
-                    mask = (df[variableToBalance] >= start) & (df[variableToBalance] < end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
+                    mask = (df[variableToBalance] >= start) & (df[variableToBalance] <= end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
                             
                 else:                                                                   
                     mask = (df[variableToBalance] > start) & (df[variableToBalance] <= end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
@@ -693,6 +723,7 @@ def fillterTemporal():
                 
                 
         del paramsOrchestrator["balanceType"][0]            # ELIMINAMOS BALANCEO REALIZADO
+        del paramsOrchestrator["paramsBalancer"][0]         # ELIMINAMOS BALANCEO REALIZADO
         modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
         endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
         del requestJson["PIPELINE"][0]                      # ELIMINAMOS EL ENDPOINT DE LOS TRABAJADOR
@@ -700,27 +731,30 @@ def fillterTemporal():
         # -------- ITERACION DE NODOS
         try:
             comunicationTimeSum = 0
+            balanceDataSave = list() 
             loggerErrorFlag("{} -- {} ".format(len(balanceData),len(initBoxWorkers)))
             for posWorker,dataWorker in enumerate(balanceData):                     # POSICIONES POR TRABAJADOR
                 loggerErrorFlag("-------- Worker {}".format(posWorker))
+                auxBalanceData = list()
                 for dataBalanceo in dataWorker:                                     # POSICIONES POR BALANCEO
                     loggerErrorFlag(" - {}".format(type(dataBalanceo)))
-                    cubesNew = {}
+                    cubesNew = {}                                                   # JSON VACIO PARA LOS CUBOS MODIFICADOS
                     for data in dataBalanceo:                                       # POSICIONES POR CUBO DE DATOS (FUENTES)
                         rowByTemporal = data[0]                                     # REGISTROS DEL RANGO
                         cubeName = data[1]                                          # OBTENMOS EL NOMBRE DEL CUBO                     
                         startFilterTime = data[2]                                   # RANGO DE INICIO
                         endFilterTime = data[3]                                     # RANGO DE FIN
+                        auxBalanceData.append([startFilterTime, endFilterTime])
                         nameFile = "{}_{}_{}".format(cubeName,
                                                     dateString(startFilterTime),    # NOMBRE DEL ARCHIVO FRGAMENTADO POR UN TEMPORAL
                                                     dateString(endFilterTime))   
-                        auxCube = cubes[cubeName].copy()                                                # GENERAMOS UNA COPIA DEL CUBO PARA TRABAJAR SOBRE ELLA
-                        auxCube["nameFile"] = "{}.csv".format(nameFile)                                                  # ASIGNAMOS EL NUEVO NOMBRE
-                        cubesNew[nameFile] = auxCube                                                    # ASIGNAMOS LOS VALORES
+                        auxCube = cubes[cubeName].copy()                                                    # GENERAMOS UNA COPIA DEL CUBO PARA TRABAJAR SOBRE ELLA
+                        auxCube["nameFile"] = "{}.csv".format(nameFile)                                     # ASIGNAMOS EL NUEVO NOMBRE
+                        cubesNew[nameFile] = auxCube                                                        # ASIGNAMOS LOS VALORES
                         loggerErrorFlag(cubesNew.keys())
-                        directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL
-                        rowByTemporal.to_csv(directoryFile, index = False,single_file=True)
-                            
+                        directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # CREAMOSS EL DIRECTORIO DEL NODO LOCAL
+                        rowByTemporal.to_csv(directoryFile, index = False,single_file=True)                 # GUARDAMOS EL ARCHIVO CSV
+                
                     try:
                     # -------- COMUNICATION ENVIO DEL FILTERADO
                         node = nodes[posWorker] 
@@ -731,7 +765,8 @@ def fillterTemporal():
                         url = node.getURL(mode=modeToSend, endPoint=endPoint)
                         startRequestTime = time.time()
                         sendJson["startRequestTime"]=startRequestTime
-                        t = threading.Thread(target=sendData, args=(url,sendJson,numberEvent,balanceData,node.getID()))
+                        t = threading.Thread(target=sendData, 
+                                    args=(url,sendJson,numberEvent,balanceData,node.getID()))
                         t.start() 
                         endComunicationTime = time.time()
                         comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
@@ -740,7 +775,7 @@ def fillterTemporal():
                         message = "ERROR COMUNICATION_ENDPONIT {} {}".format(nodeId,e)
                         loggerErrorSet(message)
                         return jsonify({"response":message}), 502
-                            
+                balanceDataSave.append(auxBalanceData)                                                              
                                 
             endFilteringTime = time.time()                        
             filteringTime = (endFilteringTime - startFilteringTime) - comunicationTimeSum
@@ -750,6 +785,21 @@ def fillterTemporal():
             message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
             loggerErrorSet(message)
             return jsonify({"response":message}), 502
+    
+        # UPDATE TABLE STATUS
+        messageInfo = {"OPERATION": "ORCHESTRATION_TEMPORAL",           # MENSAJE PARA EL LOGGER INFO
+                        "READ_TIME": readTimeSum,
+                        "PROCESS_TIME":processTimeSum,
+                        "ARRIVAL_TIME":arrivalTime,
+                        "START_REQUEST_TIME":startRequestTime}
+        
+        updateStateTable(jsonRespone=messageInfo,                       # JSON A GUARDAR EN EVEENTOS
+                            numberEvent=numberEvent,                    # NUMERO DE EVENTOS
+                            procesList=balanceDataSave,                     # ARCHIVOS PROCESADOS
+                            nodeId=nodeId)                              # ID DEL NODO TRABAJADOR
+        nodeLocal.setNumberEvents()                                     # SE INCREMENTA EL EVENTO CUANDO TERMINA EL PROCESO
+        loggerInfoSet(message=messageInfo)
+        return jsonify(messageInfo),200
     
     except Exception as e:
         message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)

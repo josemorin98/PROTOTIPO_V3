@@ -23,11 +23,11 @@ services:
     ports:
       - 5001:5000
     
-  node_2:
+  espatial_1:
     image: jmorin98/orchestrator
-    hostname: node_2
+    hostname: espatial_1
     environment:
-      NODE_ID: node_2
+      NODE_ID: espatial_1
       IP: '127.0.0.1'
       PUBLIC_PORT: 5002
       DOCKER_PORT: 5000
@@ -49,11 +49,11 @@ services:
     ports:
       - 5002:5000
   
-  node_3:
+  espatial_2:
     image: jmorin98/orchestrator
-    hostname: node_3
+    hostname: espatial_2
     environment:
-      NODE_ID: node_3
+      NODE_ID: espatial_2
       IP: '127.0.0.1'
       PUBLIC_PORT: 5003
       DOCKER_PORT: 5000
@@ -75,11 +75,11 @@ services:
     ports:
       - 5003:5000
 
-  node_4:
-    image: jmorin98/orchestrator
-    hostname: node_4
+  fusion_1:
+    image: jmorin98/fusion
+    hostname: fusion_1
     environment:
-      NODE_ID: node_4
+      NODE_ID: fusion_1
       IP: '127.0.0.1'
       PUBLIC_PORT: 5004
       DOCKER_PORT: 5000
@@ -89,9 +89,9 @@ services:
       LOGS_PATH: /logs
       PRESENTATION: 1
 
-      NODE_ID_MANAGER: orchestrator_0
+      NODE_ID_MANAGER: espatial_1
       IP_MANAGER: '127.0.0.1'
-      PUBILC_PORT_MANAGER: 5001
+      PUBILC_PORT_MANAGER: 5002
       DOCKER_PORT_MANAGER: 5000
     volumes:
       - /test/prototipoTest/:/app/data/
@@ -100,6 +100,84 @@ services:
       - workers_v3
     ports:
       - 5004:5000
+
+  fusion_2:
+    image: jmorin98/fusion
+    hostname: fusion_2
+    environment:
+      NODE_ID: fusion_2
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5004
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: espatial_1
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5002
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5005:5000
+  
+  fusion_3:
+    image: jmorin98/fusion
+    hostname: fusion_3
+    environment:
+      NODE_ID: fusion_3
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5004
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: espatial_2
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5003
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5006:5000
+  
+  fusion_4:
+    image: jmorin98/fusion
+    hostname: fusion_4
+    environment:
+      NODE_ID: fusion_4
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5004
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: espatial_2
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5003
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5007:5000
 
 networks:
   workers_v3:
