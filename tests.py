@@ -7,14 +7,15 @@ headers = {'PRIVATE-TOKEN': '<your_access_token>', 'Content-Type':'application/j
 
 
 jsonSend = {
-    "paramsOrchestrator":{"balanceType":["TEMPORAL", "ESPATIAL"],
+    "paramsOrchestrator":{"balanceType":["ESPATIAL", "TEMPORAL"],
                           "paramsBalancer":
-                              [{
+                              [{"typeEspatial": "STATE"},
+                               {
                               "startTime":"2001-01-01 00:00:00",
                                "endTime":"2001-12-31 00:00:00",
                                "nRange":1,
-                               "typeDate":"Y"},
-                               {"typeEspatial": "STATE"}]
+                               "typeDate":"Y"}
+                               ]
                           },
     "cubes":{
         "df0_100000k":{"nameFile":"df0_100000k.csv",
@@ -40,7 +41,7 @@ jsonSend = {
                                     }
                    }
     },
-    "PIPELINE":["balance/espatial","analytics/fusion"],
+    "PIPELINE":["balance/temporal","analytics/fusion"],
     "startRequestTime":time.time()
 }
 
@@ -49,10 +50,11 @@ print('sending')
 ip_cinves = "148.247.204.165"
 ip_neg = "192.168.1.77"
 ip_home = "192.168.0.16"
-ip_gama = "148.247.202.73"
 ip_inp = "10.249.26.15"
 ip = socket.gethostbyname(socket.gethostname())
-url = "http://{}:5001/balance/temporal".format(ip) # Negocio
+# ip_gama = "148.247.202.73"  # GAMMA
+
+url = "http://{}:5001/balance/espatial".format(ip) # Negocio
 
 print(url)
 

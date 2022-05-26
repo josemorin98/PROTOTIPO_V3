@@ -13,9 +13,8 @@ services:
       SEND: 0
       SOURCE_PATH: /data
       LOGS_PATH: /logs
-      ALGORITHM: RR
+      ALGORITHM: TC
       PRESENTATION: 0
-
     volumes:
       - /test/prototipoTest/:/app/data/
       - /test/prototipoTest/logs/:/app/data/logs
@@ -37,7 +36,6 @@ services:
       SOURCE_PATH: /data
       LOGS_PATH: /logs
       PRESENTATION: 1
-      ALGORITHM: TC
 
       NODE_ID_MANAGER: orchestrator_0
       IP_MANAGER: '127.0.0.1'
@@ -64,7 +62,6 @@ services:
       SOURCE_PATH: /data
       LOGS_PATH: /logs
       PRESENTATION: 1
-      ALGORITHM: TC
 
       NODE_ID_MANAGER: orchestrator_0
       IP_MANAGER: '127.0.0.1'
@@ -110,7 +107,7 @@ services:
     environment:
       NODE_ID: fusion_2
       IP: '127.0.0.1'
-      PUBLIC_PORT: 5005
+      PUBLIC_PORT: 5004
       DOCKER_PORT: 5000
       MODE: DOCKER
       SEND: 0
@@ -136,7 +133,7 @@ services:
     environment:
       NODE_ID: fusion_3
       IP: '127.0.0.1'
-      PUBLIC_PORT: 5006
+      PUBLIC_PORT: 5004
       DOCKER_PORT: 5000
       MODE: DOCKER
       SEND: 0
@@ -162,7 +159,7 @@ services:
     environment:
       NODE_ID: fusion_4
       IP: '127.0.0.1'
-      PUBLIC_PORT: 5007
+      PUBLIC_PORT: 5004
       DOCKER_PORT: 5000
       MODE: DOCKER
       SEND: 0

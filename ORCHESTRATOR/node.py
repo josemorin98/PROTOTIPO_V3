@@ -48,3 +48,6 @@ class NodeWorker():
         
     def getAlgorithm(self):
         return self.algorithm
+    
+    
+

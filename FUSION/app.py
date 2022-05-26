@@ -383,7 +383,6 @@ def fusion():
             
             if("Fusion" in cube["Tranformation"].keys()):    
                 source = cube["nameFile"]
-                loggerErrorFlag("---------------------------------------------------------------")
                 if(nodeManager.getID()=="-"):                                                   # VERIFICA SI EXISTE UN NODO MANAGER
                     pathString = ".{}/{}".format(sourcePath,source)
                     df = pd.read_csv(pathString)
@@ -408,6 +407,7 @@ def fusion():
         processTimeSum = 0
         
         for posSource,source in enumerate(sourcesDF):
+            loggerErrorFlag("---------------  {}  --------------------------------------".format(source[1]))
             cube = cubes[source[1]]
             df = source[0]
             if (posSource != 0):
