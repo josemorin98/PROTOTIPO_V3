@@ -64,7 +64,7 @@ def dataSet(cantRows=10000, numPeriods=20, freq="Y"):
 
 
 # 10k
-cants = [100000,100000,100000]
+cants = [1000000,1000000,1000000]
 for pos,c in enumerate(cants):
     df = dataSet(cantRows=c,numPeriods=30, freq="Y")
     df.to_csv("df{}_{}k.csv".format(pos,c), index=False)

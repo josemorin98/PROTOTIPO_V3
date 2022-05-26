@@ -154,7 +154,7 @@ def TwoChoicesV4(cargas, traza, sources, sourcePath, varSpatial):
                     # df = pd.read_csv('.{}/{}'.format(sourcePath,nameFile))
                     # cantidad de registros
                     cantRows = cantRows + df[df[varSpatial[pos]]==xTraza].shape[0]
-                
+                    del df
                 if( cantWorkers[select_bin] < cantWorkers[select_bin2]):
                     cargas[select_bin].append(xTraza)
                     cantWorkers[select_bin] = cantWorkers[select_bin]+cantRows

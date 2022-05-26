@@ -455,6 +455,7 @@ def fillterEspatial():
                     startGruopTime = time.time()                                                    # INICIO DEL TIEMPO DE AGRUPADO
                     df = df.groupby(variablesToBalance[posSource])                                  # AGRUPAMIENTO DE LOS VALORES
                     sourcesDF.append(df)                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+                    del df
                     endGroupTime = time.time()                                                      # FIN DEL TIEMPO DE AGRUPADO
                     processTimeSum = processTimeSum + (endGroupTime - startGruopTime)               # SUMA DEL TIEMPO DE AGRUPADO
                     processTimeSum = processTimeSum + balancerTime
@@ -514,6 +515,7 @@ def fillterEspatial():
                 endFilteringTime = time.time()                        
                 filteringTime = (endFilteringTime - startFilteringTime) - comunicationTimeSum
                 processTimeSum = processTimeSum + filteringTime
+                del sourcesDF
             # -------- ITERACION DE NODOS
             except Exception as e:
                 message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
@@ -611,7 +613,9 @@ def fillterTemporal():
                 else:                                                                           # SI EXISTE CONCATENA EL NODE ID DEL MANAGER
                     # df = pd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
                     df = dd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source),assume_missing=True)
+                
                 sourcesDF.append(df)                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+                del df
             # -------- LECTURA
         else:
             e="NOT ESPATIAL"
@@ -739,7 +743,7 @@ def fillterTemporal():
                 for dataBalanceo in dataWorker:                                     # POSICIONES POR BALANCEO
                     loggerErrorFlag(" - {}".format(type(dataBalanceo)))
                     cubesNew = {}                                                   # JSON VACIO PARA LOS CUBOS MODIFICADOS
-                    for data in dataBalanceo:                                       # POSICIONES POR CUBO DE DATOS (FUENTES)
+                    for posData,data in enumerate(dataBalanceo):                                       # POSICIONES POR CUBO DE DATOS (FUENTES)
                         rowByTemporal = data[0]                                     # REGISTROS DEL RANGO
                         cubeName = data[1]                                          # OBTENMOS EL NOMBRE DEL CUBO                     
                         startFilterTime = data[2]                                   # RANGO DE INICIO
@@ -754,7 +758,7 @@ def fillterTemporal():
                         loggerErrorFlag(cubesNew.keys())
                         directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # CREAMOSS EL DIRECTORIO DEL NODO LOCAL
                         rowByTemporal.to_csv(directoryFile, index = False,single_file=True)                 # GUARDAMOS EL ARCHIVO CSV
-                
+                    
                     try:
                     # -------- COMUNICATION ENVIO DEL FILTERADO
                         node = nodes[posWorker] 
@@ -770,6 +774,7 @@ def fillterTemporal():
                         t.start() 
                         endComunicationTime = time.time()
                         comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
+                        del dataBalanceo[posData]
                     # -------- COMUNICATION ENVIO DEL FILTERADO
                     except Exception as e:
                         message = "ERROR COMUNICATION_ENDPONIT {} {}".format(nodeId,e)
@@ -781,6 +786,7 @@ def fillterTemporal():
             filteringTime = (endFilteringTime - startFilteringTime) - comunicationTimeSum
             processTimeSum = processTimeSum + filteringTime
         # -------- ITERACION DE NODOS
+            
         except Exception as e:
             message = "ERROR PROCESS_ENDPONIT {} {}".format(nodeId,e)
             loggerErrorSet(message)

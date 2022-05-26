@@ -373,7 +373,6 @@ def fusion():
         requestJson = request.get_json()                            # RECIBIR LOS PARAMETROS
         startRequestTime = requestJson["startRequestTime"]          # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
         cubes = requestJson["cubes"]                                # CUBOS DE ENTRADA
-    
         readTimeSum = 0
         # CARGAREMOS TODAS LAS FUENTES QUE TENGAN LA KEY DE FUSION
         sourcesDF = list()                                                                       # LISTADO DE DATAFRAMES
@@ -391,6 +390,7 @@ def fusion():
                     df = pd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
                 
                 sourcesDF.append([df,cubeName])                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+                del df
         # -------- LECTURA
         endReadTime = time.time()                               # FIN DE LETURA
         readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
@@ -411,11 +411,16 @@ def fusion():
             cube = cubes[source[1]]
             df = source[0]
             if (posSource != 0):
+                
                 column_right = cube['Tranformation']['Fusion']['columnFusion']
                 column_left = source_aux['Tranformation']['Fusion']['columnFusion']
-                df_aux = df_aux.merge(df, how="inner", 
-                            left_on=column_left,
-                            right_on=column_right)	
+                typeFusion = cube['Tranformation']['Fusion']['typeFusion']
+                if (typeFusion == "variable"):
+                    df_aux = df_aux.merge(df, how="inner", 
+                                left_on=column_left,
+                                right_on=column_right)	
+                elif(typeFusion == "rows"):
+                    df_aux = pd.concat([df_aux,df], ignore_index=True, sort=False)
             else:
                 df_aux = df.copy()
                 source_aux = cube.copy()
@@ -426,7 +431,9 @@ def fusion():
         df_aux.to_csv("{}".format(directoryFile), index=False)
         endFusionTime = time.time()                                 # TIEMPO DE FIN DE LA FUSION
         processTimeSum = processTimeSum + (endFusionTime - startFusionTime)
+        del sourcesDF
         # -------- FUSION
+        return jsonify({"response":"ok"}),200
     except Exception as e:
         message = "ERROR FUSION_ENDPOINT {} {}".format(nodeId,e)
         loggerErrorSet(message)
@@ -434,7 +441,7 @@ def fusion():
     
     
     
-    return "ok"
+    
 
 @app.route('/prueba', methods = ['POST'])
 def pruebaSend():
