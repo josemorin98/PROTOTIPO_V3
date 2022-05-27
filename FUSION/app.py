@@ -25,6 +25,7 @@ logPath = os.environ.get("LOGS_PATH",'./')                              # RUTA D
 sourcePath = os.environ.get("SOURCE_PATH","./")                         # RUTA DE ARCHIVOS GENERADOS
 nodeId = os.environ.get("NODE_ID",'')                                   # ID DEL NODO
 presentationValue = mtd.trueOrFalse(os.environ.get('PRESENTATION',"0")) # PRESENTACION DEL NODO A NODO MANAGER
+sendData = mtd.trueOrFalse(os.environ.get('SEND',"0")) # CONDICIONAL DE ENVIO DE DATOS
 
 # -------- EN CASO DE QUE NO EXITA LA RUTA SE CREARA LA CARPETA
 if (not os.path.exists(".{}/{}".format(sourcePath,nodeId))):
@@ -167,6 +168,7 @@ def add_worker():
             status: codigo del estado del servidor
     """
     global nodeLocal                                            # ESTABLECAMOS LA VARIAVBLE GLOBLA NODE LOCAL
+    global sendData
     try:    
         arrivalTime = time.time()                               # TIEMPO DE LLEGADA
         nodeNewInfo = request.get_json()                        # LECTURA DE DATOS
@@ -184,7 +186,7 @@ def add_worker():
         nodeLocal.addNode(nodeNew)                              # AGREGAMOS EL NODO TRABAJADOR
         endTimeProcess = time.time()                            # TIEMPO FINAL DEL PROCESO
         processTime = endTimeProcess - startTimeProcess         # TIEMPO DE PROCES
-        send = True
+        sendData = True
         """
             MESSAGE = OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_REQUEST_TIME LATENCE_TIME
             
@@ -364,6 +366,7 @@ def fusion():
     global nodeLocal
     global sourcePath
     global nodeManager
+    global sendData
     
     try:
         # -------- LECTURA
@@ -405,9 +408,10 @@ def fusion():
         # -------- FUSION
         startFusionTime = time.time()                               # TIEMPO DE INICIO DEL RANGOS
         processTimeSum = 0
-        
+        listNamesFusion = list()
         for posSource,source in enumerate(sourcesDF):
             loggerErrorFlag("---------------  {}  --------------------------------------".format(source[1]))
+            listNamesFusion.append(source[1])
             cube = cubes[source[1]]
             df = source[0]
             if (posSource != 0):
@@ -429,17 +433,53 @@ def fusion():
         nameFile = "fusion_{}".format(time.time())
         directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
         df_aux.to_csv("{}".format(directoryFile), index=False)
+        cubesNew = {
+            nameFile: source_aux
+        }
         endFusionTime = time.time()                                 # TIEMPO DE FIN DE LA FUSION
         processTimeSum = processTimeSum + (endFusionTime - startFusionTime)
         del sourcesDF
         # -------- FUSION
-        return jsonify({"response":"ok"}),200
     except Exception as e:
         message = "ERROR FUSION_ENDPOINT {} {}".format(nodeId,e)
         loggerErrorSet(message)
         return jsonify({"response":message}), 502
     
-    
+    try:
+        #  -------- COMUNICACION
+        if (sendData == True):
+            modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
+            endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
+            for posNode, node in enumerate(nodes):
+                startComunicationTime = time.time()
+                sendJson = requestJson.copy()
+                sendJson['cubes'] = cubesNew
+                loggerErrorFlag(sendJson['cubes'].keys())
+                url = node.getURL(mode=modeToSend, endPoint=endPoint)
+                startRequestTime = time.time()
+                sendJson["startRequestTime"]=startRequestTime
+                t = threading.Thread(target=sendData, args=(url,sendJson,numberEvent,listNamesFusion,node.getID()))
+                t.start() 
+                endComunicationTime = time.time()
+                comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
+        #  -------- COMUNICACION
+        # UPDATE TABLE STATUS
+        messageInfo = {"OPERATION": "FUSION",           # MENSAJE PARA EL LOGGER INFO
+                        "READ_TIME": readTimeSum,
+                        "PROCESS_TIME":processTimeSum,
+                        "ARRIVAL_TIME":arrivalTime,
+                        "START_REQUEST_TIME":startRequestTime}
+        updateStateTable(jsonRespone=messageInfo,                       # JSON A GUARDAR EN EVEENTOS
+                            numberEvent=numberEvent,                    # NUMERO DE EVENTOS
+                            procesList=listNamesFusion,                 # ARCHIVOS PROCESADOS
+                            nodeId=nodeId)                              # ID DEL NODO TRABAJADOR
+        nodeLocal.setNumberEvents()                                     # SE INCREMENTA EL EVENTO CUANDO TERMINA EL PROCESO
+        loggerInfoSet(message=messageInfo)
+        return jsonify(messageInfo),200
+    except Exception as e:
+        message = "ERROR COMUNICATION_ENDPONIT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 503
     
     
 

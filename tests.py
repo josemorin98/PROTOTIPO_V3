@@ -34,14 +34,17 @@ jsonSend = {
                               "Fusion":{"columnFusion":["fecha","state"],
                                         "typeFusion": "rows"}
                                     }
-                   }#,
-        # "df2_1000000k":{"nameFile":"df2_100000k.csv",
-        #            "Espatial":"state",
-        #            "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
-        #            "Tranformation":{
-        #                       "Fusion":{"columnFusion":["fecha","state"]}
-        #                             }
-        #            }
+                   },
+        "df2_1000000k":{"nameFile":"df2_100000k.csv",
+                   "Espatial":"state",
+                   "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
+                   "Tranformation":{
+                              "Fusion":{"columnFusion":["fecha","state"],
+                                        "typeFusion": "rows"
+                                        
+                                        }
+                                    }
+                   }
     },
     "PIPELINE":["balance/temporal","analytics/fusion"],
     "startRequestTime":time.time()
