@@ -87,7 +87,7 @@ services:
       PUBLIC_PORT: 5004
       DOCKER_PORT: 5000
       MODE: DOCKER
-      SEND: 0
+      SEND: 1
       SOURCE_PATH: /data
       LOGS_PATH: /logs
       PRESENTATION: 1
@@ -113,7 +113,7 @@ services:
       PUBLIC_PORT: 5005
       DOCKER_PORT: 5000
       MODE: DOCKER
-      SEND: 0
+      SEND: 1
       SOURCE_PATH: /data
       LOGS_PATH: /logs
       PRESENTATION: 1
@@ -139,7 +139,7 @@ services:
       PUBLIC_PORT: 5006
       DOCKER_PORT: 5000
       MODE: DOCKER
-      SEND: 0
+      SEND: 1
       SOURCE_PATH: /data
       LOGS_PATH: /logs
       PRESENTATION: 1
@@ -165,7 +165,7 @@ services:
       PUBLIC_PORT: 5007
       DOCKER_PORT: 5000
       MODE: DOCKER
-      SEND: 0
+      SEND: 1
       SOURCE_PATH: /data
       LOGS_PATH: /logs
       PRESENTATION: 1
@@ -181,6 +181,214 @@ services:
       - workers_v3
     ports:
       - 5007:5000
+    
+  mediaClass_1:
+    image: jmorin98/media
+    hostname: mediaClass_1
+    environment:
+      NODE_ID: mediaClass_1
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5008
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 1
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: fusion_1
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5004
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5008:5000
+
+  mediaClass_2:
+    image: jmorin98/media
+    hostname: mediaClass_2
+    environment:
+      NODE_ID: mediaClass_2
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5009
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 1
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: fusion_2
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5005
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5009:5000
+  
+  mediaClass_3:
+    image: jmorin98/media
+    hostname: mediaClass_3
+    environment:
+      NODE_ID: mediaClass_3
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5010
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 1
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: fusion_3
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5006
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5010:5000
+  
+  mediaClass_4:
+    image: jmorin98/media
+    hostname: mediaClass_4
+    environment:
+      NODE_ID: mediaClass_4
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5011
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 1
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: fusion_4
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5007
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5011:5000
+
+  correlation_1:
+    image: jmorin98/correlation
+    hostname: correlation_1
+    environment:
+      NODE_ID: correlation_1
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5012
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: mediaClass_1
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5008
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5012:5000
+
+  correlation_2:
+    image: jmorin98/correlation
+    hostname: correlation_2
+    environment:
+      NODE_ID: correlation_2
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5013
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: mediaClass_2
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5009
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5013:5000
+  
+  correlation_3:
+    image: jmorin98/correlation
+    hostname: correlation_3
+    environment:
+      NODE_ID: correlation_3
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5014
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: mediaClass_3
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5010
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5014:5000
+  
+  correlation_4:
+    image: jmorin98/correlation
+    hostname: correlation_4
+    environment:
+      NODE_ID: correlation_4
+      IP: '127.0.0.1'
+      PUBLIC_PORT: 5015
+      DOCKER_PORT: 5000
+      MODE: DOCKER
+      SEND: 0
+      SOURCE_PATH: /data
+      LOGS_PATH: /logs
+      PRESENTATION: 1
+
+      NODE_ID_MANAGER: mediaClass_4
+      IP_MANAGER: '127.0.0.1'
+      PUBILC_PORT_MANAGER: 5011
+      DOCKER_PORT_MANAGER: 5000
+    volumes:
+      - /test/prototipoTest/:/app/data/
+      - /test/prototipoTest/logs/:/app/data/logs
+    networks:
+      - workers_v3
+    ports:
+      - 5015:5000
 
 networks:
   workers_v3:

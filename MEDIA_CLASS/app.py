@@ -1,5 +1,4 @@
 # from asyncio.log import logger
-from datetime import datetime, timedelta
 import sys
 import threading
 from flask import Flask, request
@@ -13,8 +12,8 @@ import node as node
 import logging
 import requests
 import pandas as pd
-import dask.dataframe as dd
 import numpy as np
+from sklearn.decomposition import PCA
 
 app = Flask(__name__)
 app.debug = True
@@ -26,12 +25,12 @@ logPath = os.environ.get("LOGS_PATH",'./')                              # RUTA D
 sourcePath = os.environ.get("SOURCE_PATH","./")                         # RUTA DE ARCHIVOS GENERADOS
 nodeId = os.environ.get("NODE_ID",'')                                   # ID DEL NODO
 presentationValue = mtd.trueOrFalse(os.environ.get('PRESENTATION',"0")) # PRESENTACION DEL NODO A NODO MANAGER
+sendData = mtd.trueOrFalse(os.environ.get('SEND',"0")) # CONDICIONAL DE ENVIO DE DATOS
 
 # -------- EN CASO DE QUE NO EXITA LA RUTA SE CREARA LA CARPETA
 if (not os.path.exists(".{}/{}".format(sourcePath,nodeId))):
     os.mkdir(".{}/{}".format(sourcePath,nodeId))
 
-mtd.initEspatial()
 # -----------------------------------------------------------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 # -----------------------------------------------------------------------------------------------------------------------
@@ -261,6 +260,7 @@ def send_balance():
     global tableState
     return jsonify(tableState)      # RETORNA LOS VALORES DE LA TABLA DE EVENTOS
 
+
 # -----------------------------------------------------------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 # -----------------------------------------------------------------------------------------------------------------------
@@ -314,7 +314,7 @@ def updateStateTable(jsonRespone,numberEvent,procesList,nodeId):
 
 
 # -------- FUNCION PARA EMPEZAR UNA PETICION
-def sendData(url,jsonSend,numberEvent,procesList,nodeId):
+def sendDataVal(url,jsonSend,nodeId):
     """
     Funcion encargada para enviar los datos en un formato json, y mandar a actualizar los eventos 
     generados dentro del nodo.
@@ -322,8 +322,6 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
     Args:
         url (str): url destino
         jsonSend (json): json a enviar
-        numberEvent (int): numero de evento
-        procesList (list): cubos ejecutados
         nodeId (str): identificacion del nodo
 
     Returns:
@@ -332,6 +330,7 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
     try:
         headers = {'PRIVATE-TOKEN': '<your_access_token>',  # HEADER DE LA PETICION
                    'Content-Type':'application/json'}
+        loggerErrorFlag("Sending --------- {}".format(url))
         response = requests.post(url,                       # URL DESTINO
                     data=json.dumps(jsonSend),              # JSON A ENVIAR
                     headers=headers)                        # ASIGNAMOS HEADERS
@@ -347,17 +346,26 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
 # -----------------------------------------------------------------------------------------------------------------------
 
 
-# -------- FUNCION PARA OBTENER UNA CLASE A PARTIT DE LA MEDIA DE UNA VARIABLE
+# -------- FUNCION PARA OBTENER UNA CLASE A PARTIR DE LA MEDIA DE UNA VARIABLE
 @app.route('/analytics/mediaClass', methods = ['POST'])
-def meanClass():
-    """_summary_
+def media():
+    """
+        END-POINT dedicado fusionar las fuentes de datos entrantes
+        
+        Tranformation json de entrada:
+            {
+                "Media": [var1]
+            }
+        
+        Nota: 
 
     Returns:
-        _type_: _description_
+        json: descripcion de los tiempos del proceso
     """
     global nodeLocal
     global sourcePath
     global nodeManager
+    global sendData
     
     try:
         # -------- LECTURA
@@ -368,17 +376,28 @@ def meanClass():
         startRequestTime = requestJson["startRequestTime"]          # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
         cubes = requestJson["cubes"]                                # CUBOS DE ENTRADA
         readTimeSum = 0
-        
-        if (balanceType == "ESPATIAL"):
-            typeBalanceEspatial = paramsBalancer["typeEspatial"]                    # TIPO DE ESPACIAL
-            toBalanceData = mtd.typeBalnceEspatial(typeBalance=typeBalanceEspatial) # EXTRAMOS EL BALANCEO ESPACIAL
-        else:
-            e="NOT ESPATIAL"
-            message = "ERROR READ_ENDPOINT {} {}".format(nodeId,e)
-            loggerErrorSet(message)
-            return jsonify({"response":message}), 501
+        comunicationTimeSum=0
+        # CARGAREMOS TODAS LAS FUENTES QUE TENGAN LA KEY DE FUSION
+        sourcesDF = list()                                                                       # LISTADO DE DATAFRAMES
+        loggerErrorFlag(cubes.keys())
+        for posCube, cubeName in enumerate(cubes.keys()):
+            cube = cubes[cubeName]
+            
+            if("mediaClass" in cube["Tranformation"].keys()):    
+                source = cube["nameFile"]
+                
+                if(nodeManager.getID()=="-"):                                                   # VERIFICA SI EXISTE UN NODO MANAGER
+                    pathString = ".{}/{}".format(sourcePath,source)
+                    df = pd.read_csv(pathString)
+                
+                else:                                                                           # SI EXISTE CONCATENA EL NODE ID DEL MANAGER
+                    df = pd.read_csv('.{}/{}/{}'.format(sourcePath,nodeManager.getID(),source))
+                
+                sourcesDF.append([df,cubeName])                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
+                del df
+            else:
+                raise Exception("No hay parametros")
         # -------- LECTURA
-        
         endReadTime = time.time()                               # FIN DE LETURA
         readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
         readTimeSum = readTimeSum + readTime
@@ -387,8 +406,109 @@ def meanClass():
         loggerErrorSet(message)
         return jsonify({"response":message}), 501
     
-    return 1 
-
+    
+    
+    try:
+        # -------- Media
+        startFusionTime = time.time()                               # TIEMPO DE INICIO DEL RANGOS
+        processTimeSum = 0
+        listNamesFusion = list()
+        for posSource,source in enumerate(sourcesDF):
+            loggerErrorFlag("---------------  {}  --------------------------------------".format(source[1]))
+            listNamesFusion.append(source[1])
+            cube = cubes[source[1]]['Tranformation']['mediaClass']
+            df = source[0]
+            columnClass = cube["columns"]
+            loggerErrorFlag("--------- {} ".format(columnClass))
+            try:
+                # -------- PCA
+                train_features = df[columnClass].values                 # VALORES POR CULMNAS SELECCIONADAS
+                model = PCA(n_components=1).fit(train_features)         # ENTRENEMAMOS EL PCA
+                X_pca = model.transform(train_features)                 # TRANFORMAMOS
+                n_pcs= model.components_[0]                             # NUMERO DE COMPONENTES
+                
+                numColumns = cube["numImportant"]                       # TOTAL DE COLUMNAS IMPORTANTES
+                if ("addColumnIn" in cube.keys()):
+                    nextC = cube["addColumnIn"]
+                    # -------- NEX NODOS
+                    cubeNext = cubes[source[1]]['Tranformation'][nextC]
+                    listColummn = cubeNext["columns"]
+                    # -------- NEXT NODO
+                else:
+                    listColummn = list()
+                valComponents = sorted(zip(np.abs(n_pcs),columnClass),
+                                       reverse=True)[:numColumns]
+                
+                
+                # -------- PCA
+            except Exception as e:
+                message = "ERROR PROCESS_PCA_ENDPOINT {} {}".format(nodeId,e)
+                loggerErrorSet(message)
+                return jsonify({"response":message}), 502
+            
+            for pos, val in enumerate(valComponents):
+                valColumn = val[1]
+                nameColumn = "class_{}".format(valColumn)
+                meanColumn = df[valColumn].mean()
+                df[nameColumn] = (df[valColumn]<=meanColumn) & (df[valColumn]<=meanColumn)
+                df[nameColumn] = df[nameColumn].astype(int)
+                listColummn.append(valColumn)
+            nameFile = "{}".format(source[1])
+            directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
+            df.to_csv("{}".format(directoryFile), index=False)
+            
+            # -------- NEX NODOS
+            if ("addColumnIn" in cube.keys()):
+                cubeNext["columns"]= listColummn
+                cubes[source[1]]['Tranformation'][nextC] = cubeNext
+            # -------- NEXT NODO
+            
+        endFusionTime = time.time()                                 # TIEMPO DE FIN DE LA FUSION
+        processTimeSum = processTimeSum + (endFusionTime - startFusionTime)
+        del sourcesDF
+        # -------- FUSION
+    except Exception as e:
+        message = "ERROR MEDIA_CLASS_ENDPOINT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 502
+    
+    try:
+        #  -------- COMUNICACION
+        if (sendData == True):
+            modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
+            endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
+            del requestJson["PIPELINE"][0]
+            for posNode, node in enumerate(nodes):
+                startComunicationTime = time.time()
+                sendJson = requestJson.copy()
+                sendJson['cubes'] = cubes
+                url = node.getURL(mode=modeToSend, endPoint=endPoint)
+                startRequestTime = time.time()
+                sendJson["startRequestTime"]=startRequestTime
+                t = threading.Thread(target=sendDataVal, args=(url,sendJson,node.getID()))
+                t.start() 
+                endComunicationTime = time.time()
+                comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
+        #  -------- COMUNICACION
+        # UPDATE TABLE STATUS
+        messageInfo = {"OPERATION": "MEDIA_CLASS",           # MENSAJE PARA EL LOGGER INFO
+                        "READ_TIME": readTimeSum,
+                        "PROCESS_TIME":processTimeSum,
+                        "ARRIVAL_TIME":arrivalTime,
+                        "START_REQUEST_TIME":startRequestTime}
+        updateStateTable(jsonRespone=messageInfo,                       # JSON A GUARDAR EN EVEENTOS
+                            numberEvent=numberEvent,                    # NUMERO DE EVENTOS
+                            procesList=listNamesFusion,                 # ARCHIVOS PROCESADOS
+                            nodeId=nodeId)                              # ID DEL NODO TRABAJADOR
+        nodeLocal.setNumberEvents()                                     # SE INCREMENTA EL EVENTO CUANDO TERMINA EL PROCESO
+        loggerInfoSet(message=messageInfo)
+        return jsonify(messageInfo),200
+    except Exception as e:
+        message = "ERROR COMUNICATION_ENDPONIT {} {}".format(nodeId,e)
+        loggerErrorSet(message)
+        return jsonify({"response":message}), 503
+    
+  
 
 # -----------------------------------------------------------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -424,7 +544,7 @@ def pruebaResponde():
         startRequestTime = requestJson["startRequestTime"]      # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
         
         # -------- LECTURA
-        loggerErrorFlag(requestJson['cubes'].keys())
+        loggerErrorFlag(requestJson['cubes'])
         # -------- LECTURA
         
         endReadTime = time.time()                               # FIN DE LETURA

@@ -22,31 +22,46 @@ jsonSend = {
                    "Espatial":"state",
                    "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
                    "Tranformation":{
-                              "Fusion":{"columnFusion":["fecha","state"],
-                                        "typeFusion": "rows"}
-                                    }
+                            "fusion":{"columns":["fecha","state"],
+                                        "typeFusion": "rows"},
+                            "mediaClass":{"columns":["A","B","C","D","E","F","G","H","I"],
+                                          "numImportant":3,
+                                          "addColumnIn":"correlation"},
+                            "correlation":{"columns":["A","B","C","D","E"],
+                                           "normalize":1}
+                            },
                    },
              
         "df1_1000000k":{"nameFile":"df1_100000k.csv",
                    "Espatial":"state",
                    "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
                    "Tranformation":{
-                              "Fusion":{"columnFusion":["fecha","state"],
-                                        "typeFusion": "rows"}
+                            "fusion":{"columns":["fecha","state"],
+                                        "typeFusion": "rows"},
+                            "mediaClass":{"columns":["A","B","C","D","E","F","G","H","I"],
+                                          "numImportant":3,
+                                          "addColumnIn":"correlation"},
+                            "correlation":{"columns":["A","B","C","D","E"],
+                                           "normalize":1}
                                     }
                    },
         "df2_1000000k":{"nameFile":"df2_100000k.csv",
                    "Espatial":"state",
                    "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
                    "Tranformation":{
-                              "Fusion":{"columnFusion":["fecha","state"],
+                              "fusion":{"columns":["fecha","state"],
                                         "typeFusion": "rows"
                                         
-                                        }
+                                        },
+                            "mediaClass":{"columns":["A","B","C","D","E","F","G","H","I"],
+                                          "numImportant":3,
+                                          "addColumnIn":"correlation"},
+                            "correlation":{"columns":["A","B","C","D","E"],
+                                           "normalize":1}
                                     }
                    }
     },
-    "PIPELINE":["balance/temporal","analytics/fusion"],
+    "PIPELINE":["balance/temporal","analytics/fusion","analytics/mediaClass","/analytics/correlation"],
     "startRequestTime":time.time()
 }
 
@@ -57,11 +72,12 @@ ip_neg = "192.168.1.77"
 ip_home = "192.168.0.16"
 ip_inp = "10.249.26.15"
 ip = socket.gethostbyname(socket.gethostname())
-# ip_gama = "148.247.202.73"  # GAMMA
 
+ip = "localhost"
 url = "http://{}:5001/balance/espatial".format(ip) # Negocio
 
 print(url)
 
 for x in range(1):
     req = requests.post(url,data=json.dumps(jsonSend), headers=headers)
+    print(req.status_code)

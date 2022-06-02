@@ -332,6 +332,7 @@ def sendData(url,jsonSend,numberEvent,procesList,nodeId):
     try:
         headers = {'PRIVATE-TOKEN': '<your_access_token>',  # HEADER DE LA PETICION
                    'Content-Type':'application/json'}
+        loggerErrorFlag("Sending --------- {}".format(url))
         response = requests.post(url,                       # URL DESTINO
                     data=json.dumps(jsonSend),              # JSON A ENVIAR
                     headers=headers)                        # ASIGNAMOS HEADERS
@@ -691,8 +692,11 @@ def fillterTemporal():
                 loggerErrorFlag("{} - {}".format((start),(end)))
                 df_aux = df.loc[mask]                                                               # APARTAMOS LOS VALORES DEL TOTAL DEL REGISTRO
                 dfByDateAux.append([df_aux, cubeName, start, end])                                  # GUARDAMOS LOS VALORES DEL TOTAL DEL REGISTRO
-                        
+                del df_aux        
+            del df
             dfByDates.append(dfByDateAux)
+        del sourcesDF
+        del dfByDateAux
         endFilteringTime = time.time()
         processTimeSum = processTimeSum + (endFilteringTime - startFilteringTime)
         # -------- FILTRADO
@@ -736,12 +740,12 @@ def fillterTemporal():
         try:
             comunicationTimeSum = 0
             balanceDataSave = list() 
-            loggerErrorFlag("{} -- {} ".format(len(balanceData),len(initBoxWorkers)))
+            loggerErrorFlag("{} == {} ".format(len(balanceData),len(initBoxWorkers)))
             for posWorker,dataWorker in enumerate(balanceData):                     # POSICIONES POR TRABAJADOR
                 loggerErrorFlag("-------- Worker {}".format(posWorker))
                 auxBalanceData = list()
                 for dataBalanceo in dataWorker:                                     # POSICIONES POR BALANCEO
-                    loggerErrorFlag(" - {}".format(type(dataBalanceo)))
+                    loggerErrorFlag(" ----------- {}".format(type(dataBalanceo)))
                     cubesNew = {}                                                   # JSON VACIO PARA LOS CUBOS MODIFICADOS
                     for posData,data in enumerate(dataBalanceo):                                       # POSICIONES POR CUBO DE DATOS (FUENTES)
                         rowByTemporal = data[0]                                     # REGISTROS DEL RANGO
