@@ -1,11 +1,11 @@
 version: '3'
 services:
 
-  orchestrator_0:
+  espatial_0:
     image: jmorin98/orchestrator
-    hostname: orchestrator_0
+    hostname: espatial_0
     environment:
-      NODE_ID: orchestrator_0
+      NODE_ID: espatial_0
       IP: '127.0.0.1'
       PUBLIC_PORT: 5001
       DOCKER_PORT: 5000
@@ -24,11 +24,11 @@ services:
     ports:
       - 5001:5000
     
-  espatial_1:
+  temporal_1:
     image: jmorin98/orchestrator
-    hostname: espatial_1
+    hostname: temporal_1
     environment:
-      NODE_ID: espatial_1
+      NODE_ID: temporal_1
       IP: '127.0.0.1'
       PUBLIC_PORT: 5002
       DOCKER_PORT: 5000
@@ -39,7 +39,7 @@ services:
       PRESENTATION: 1
       ALGORITHM: TC
 
-      NODE_ID_MANAGER: orchestrator_0
+      NODE_ID_MANAGER: espatial_0
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5001
       DOCKER_PORT_MANAGER: 5000
@@ -51,11 +51,11 @@ services:
     ports:
       - 5002:5000
   
-  espatial_2:
+  temporal_2:
     image: jmorin98/orchestrator
-    hostname: espatial_2
+    hostname: temporal_2
     environment:
-      NODE_ID: espatial_2
+      NODE_ID: temporal_2
       IP: '127.0.0.1'
       PUBLIC_PORT: 5003
       DOCKER_PORT: 5000
@@ -66,7 +66,7 @@ services:
       PRESENTATION: 1
       ALGORITHM: TC
 
-      NODE_ID_MANAGER: orchestrator_0
+      NODE_ID_MANAGER: espatial_0
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5001
       DOCKER_PORT_MANAGER: 5000
@@ -92,7 +92,7 @@ services:
       LOGS_PATH: /logs
       PRESENTATION: 1
 
-      NODE_ID_MANAGER: espatial_1
+      NODE_ID_MANAGER: temporal_1
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5002
       DOCKER_PORT_MANAGER: 5000
@@ -118,7 +118,7 @@ services:
       LOGS_PATH: /logs
       PRESENTATION: 1
 
-      NODE_ID_MANAGER: espatial_1
+      NODE_ID_MANAGER: temporal_1
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5002
       DOCKER_PORT_MANAGER: 5000
@@ -144,7 +144,7 @@ services:
       LOGS_PATH: /logs
       PRESENTATION: 1
 
-      NODE_ID_MANAGER: espatial_2
+      NODE_ID_MANAGER: temporal_2
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5003
       DOCKER_PORT_MANAGER: 5000
@@ -170,7 +170,7 @@ services:
       LOGS_PATH: /logs
       PRESENTATION: 1
 
-      NODE_ID_MANAGER: espatial_2
+      NODE_ID_MANAGER: temporal_2
       IP_MANAGER: '127.0.0.1'
       PUBILC_PORT_MANAGER: 5003
       DOCKER_PORT_MANAGER: 5000

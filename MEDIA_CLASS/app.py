@@ -42,8 +42,15 @@ formatter = logging.Formatter(FORMAT)                                # GENERAR E
 console = logging.StreamHandler()                                    # GENERAR EL MANEJADOR CONSOLE
 console.setLevel(logging.INFO)                                       # ESTABLECER EL NIVEL DE CONSOLA
 console.setFormatter(fmt=formatter)                                  # ESTABLECER EL FORMATO DE CONSOLA
-logs_info_file = './data{}/{}_info.log'.format(logPath,nodeId)       # ESTABLECER RUTA DE LOGS INFO
-logs_error_file = './data{}/{}_error.log'.format(logPath,nodeId)     # ESTABLECER RUTA DE LOGS ERROR
+logs_info_file = './data{}/info'.format(logPath)       # ESTABLECER RUTA DE LOGS INFO
+if (not os.path.exists(logs_info_file)):
+    os.mkdir(logs_info_file)
+logs_info_file = './data{}/info/{}_info.log'.format(logPath,nodeId)       # ESTABLECER RUTA DE LOGS INFO
+
+logs_error_file = './data{}/error'.format(logPath)     # ESTABLECER RUTA DE LOGS ERROR# -------- LOGGER INFO
+if (not os.path.exists(logs_error_file)):
+    os.mkdir(logs_error_file)
+logs_error_file = './data{}/error/{}_error.log'.format(logPath,nodeId)     # ESTABLECER RUTA DE LOGS ERROR# -------- LOGGER INFO
 # -------- LOGGER INFO
 loggerInfo = logging.getLogger('LOGS_INFO')                          # CONFIGURACION DEL NOMBRE
 hdlr_1 = logging.FileHandler(logs_info_file)                         # COLOCAR RUTA DE LOGS INFO
@@ -428,6 +435,7 @@ def media():
                 n_pcs= model.components_[0]                             # NUMERO DE COMPONENTES
                 
                 numColumns = cube["numImportant"]                       # TOTAL DE COLUMNAS IMPORTANTES
+                
                 if ("addColumnIn" in cube.keys()):
                     nextC = cube["addColumnIn"]
                     # -------- NEX NODOS
@@ -452,7 +460,7 @@ def media():
                 meanColumn = df[valColumn].mean()
                 df[nameColumn] = (df[valColumn]<=meanColumn) & (df[valColumn]<=meanColumn)
                 df[nameColumn] = df[nameColumn].astype(int)
-                listColummn.append(valColumn)
+                listColummn.append(nameColumn)
             nameFile = "{}".format(source[1])
             directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
             df.to_csv("{}".format(directoryFile), index=False)
@@ -460,6 +468,7 @@ def media():
             # -------- NEX NODOS
             if ("addColumnIn" in cube.keys()):
                 cubeNext["columns"]= listColummn
+                loggerErrorFlag("--------------------------- {}".format(cubeNext["columns"]))
                 cubes[source[1]]['Tranformation'][nextC] = cubeNext
             # -------- NEXT NODO
             

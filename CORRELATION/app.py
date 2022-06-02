@@ -41,8 +41,16 @@ formatter = logging.Formatter(FORMAT)                                # GENERAR E
 console = logging.StreamHandler()                                    # GENERAR EL MANEJADOR CONSOLE
 console.setLevel(logging.INFO)                                       # ESTABLECER EL NIVEL DE CONSOLA
 console.setFormatter(fmt=formatter)                                  # ESTABLECER EL FORMATO DE CONSOLA
-logs_info_file = './data{}/{}_info.log'.format(logPath,nodeId)       # ESTABLECER RUTA DE LOGS INFO
-logs_error_file = './data{}/{}_error.log'.format(logPath,nodeId)     # ESTABLECER RUTA DE LOGS ERROR
+
+logs_info_file = './data{}/info'.format(logPath)       # ESTABLECER RUTA DE LOGS INFO
+if (not os.path.exists(logs_info_file)):
+    os.mkdir(logs_info_file)
+logs_info_file = './data{}/info/{}_info.log'.format(logPath,nodeId)       # ESTABLECER RUTA DE LOGS INFO
+
+logs_error_file = './data{}/error'.format(logPath)     # ESTABLECER RUTA DE LOGS ERROR# -------- LOGGER INFO
+if (not os.path.exists(logs_error_file)):
+    os.mkdir(logs_error_file)
+logs_error_file = './data{}/error/{}_error.log'.format(logPath,nodeId)     # ESTABLECER RUTA DE LOGS ERROR# -------- LOGGER INFO
 # -------- LOGGER INFO
 loggerInfo = logging.getLogger('LOGS_INFO')                          # CONFIGURACION DEL NOMBRE
 hdlr_1 = logging.FileHandler(logs_info_file)                         # COLOCAR RUTA DE LOGS INFO
@@ -378,7 +386,6 @@ def correlation():
         comunicationTimeSum=0
         # CARGAREMOS TODAS LAS FUENTES QUE TENGAN LA KEY DE FUSION
         sourcesDF = list()                                                                       # LISTADO DE DATAFRAMES
-        loggerErrorFlag(cubes.keys())
         for posCube, cubeName in enumerate(cubes.keys()):
             cube = cubes[cubeName]
             
@@ -422,29 +429,28 @@ def correlation():
             
             normalizeVal = mtd.trueOrFalse(cube['normalize'])
             if (normalizeVal!=False):
-                df = mtd.normalize(df,columnCorr)
+                df = mtd.normalize(df[columnCorr],columnCorr)
             
-            df_corr = df.dropna().corr()
-            df_corr = df[columnCorr]
-            
-            mtd.correlationPlot(corr=df_corr,
+            for algo in cube['algorithm']:
+                df_corr = df.corr(method=algo)
+                mtd.correlationPlot(corr=df_corr,
                                 sourcePath=sourcePath, 
                                 nameSource=nameSource,
-                                nodeId=nodeLocal.getID())
-            
+                                nodeId=nodeLocal.getID(),
+                                algorithm=algo)
+                nameFile = "CORR_{}_{}".format(algo,nameSource)
+                directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
+                df_corr.to_csv("{}".format(directoryFile), index=False)
+                del df_corr
+                
             nameFile = "{}".format(nameSource)
             directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
             df.to_csv("{}".format(directoryFile), index=False)
-            nameFile = "CORR_{}".format(nameSource)
-            directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
-            df_corr.to_csv("{}".format(directoryFile), index=False)
-            
             # -------- NEX NODOS
             # if ("addColumnIn" in cube.keys()):
             #     cubeNext["columns"]= listColummn
             #     cubes[source[1]]['Tranformation'][nextC] = cubeNext
             # -------- NEXT NODO
-            del df_corr
             del df
         endFusionTime = time.time()                                 # TIEMPO DE FIN DE LA FUSION
         processTimeSum = processTimeSum + (endFusionTime - startFusionTime)

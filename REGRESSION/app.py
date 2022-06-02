@@ -1,5 +1,4 @@
 # from asyncio.log import logger
-from datetime import datetime, timedelta
 import sys
 import threading
 from flask import Flask, request
@@ -13,7 +12,6 @@ import node as node
 import logging
 import requests
 import pandas as pd
-import numpy as np
 
 app = Flask(__name__)
 app.debug = True
@@ -25,11 +23,12 @@ logPath = os.environ.get("LOGS_PATH",'./')                              # RUTA D
 sourcePath = os.environ.get("SOURCE_PATH","./")                         # RUTA DE ARCHIVOS GENERADOS
 nodeId = os.environ.get("NODE_ID",'')                                   # ID DEL NODO
 presentationValue = mtd.trueOrFalse(os.environ.get('PRESENTATION',"0")) # PRESENTACION DEL NODO A NODO MANAGER
-sendDataVal = mtd.trueOrFalse(os.environ.get('SEND',"0")) # CONDICIONAL DE ENVIO DE DATOS
+sendData = mtd.trueOrFalse(os.environ.get('SEND',"0")) # CONDICIONAL DE ENVIO DE DATOS
 
 # -------- EN CASO DE QUE NO EXITA LA RUTA SE CREARA LA CARPETA
 if (not os.path.exists(".{}/{}".format(sourcePath,nodeId))):
     os.mkdir(".{}/{}".format(sourcePath,nodeId))
+
 
 # -----------------------------------------------------------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,6 +41,7 @@ formatter = logging.Formatter(FORMAT)                                # GENERAR E
 console = logging.StreamHandler()                                    # GENERAR EL MANEJADOR CONSOLE
 console.setLevel(logging.INFO)                                       # ESTABLECER EL NIVEL DE CONSOLA
 console.setFormatter(fmt=formatter)                                  # ESTABLECER EL FORMATO DE CONSOLA
+
 logs_info_file = './data{}/info'.format(logPath)       # ESTABLECER RUTA DE LOGS INFO
 if (not os.path.exists(logs_info_file)):
     os.mkdir(logs_info_file)
@@ -51,7 +51,7 @@ logs_error_file = './data{}/error'.format(logPath)     # ESTABLECER RUTA DE LOGS
 if (not os.path.exists(logs_error_file)):
     os.mkdir(logs_error_file)
 logs_error_file = './data{}/error/{}_error.log'.format(logPath,nodeId)     # ESTABLECER RUTA DE LOGS ERROR# -------- LOGGER INFO
-
+# -------- LOGGER INFO
 loggerInfo = logging.getLogger('LOGS_INFO')                          # CONFIGURACION DEL NOMBRE
 hdlr_1 = logging.FileHandler(logs_info_file)                         # COLOCAR RUTA DE LOGS INFO
 hdlr_1.setFormatter(formatter)                                       # ESTABLECER FORMATO
@@ -175,7 +175,6 @@ def add_worker():
             status: codigo del estado del servidor
     """
     global nodeLocal                                            # ESTABLECAMOS LA VARIAVBLE GLOBLA NODE LOCAL
-    global sendData
     try:    
         arrivalTime = time.time()                               # TIEMPO DE LLEGADA
         nodeNewInfo = request.get_json()                        # LECTURA DE DATOS
@@ -193,7 +192,7 @@ def add_worker():
         nodeLocal.addNode(nodeNew)                              # AGREGAMOS EL NODO TRABAJADOR
         endTimeProcess = time.time()                            # TIEMPO FINAL DEL PROCESO
         processTime = endTimeProcess - startTimeProcess         # TIEMPO DE PROCES
-        sendDataVal = True
+        send = True
         """
             MESSAGE = OPERATION READ_TIME PROCESS_TIME ARRIVAL_TIME START_REQUEST_TIME LATENCE_TIME
             
@@ -268,6 +267,7 @@ def send_balance():
     global tableState
     return jsonify(tableState)      # RETORNA LOS VALORES DE LA TABLA DE EVENTOS
 
+
 # -----------------------------------------------------------------------------------------------------------------------
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 # -----------------------------------------------------------------------------------------------------------------------
@@ -321,7 +321,7 @@ def updateStateTable(jsonRespone,numberEvent,procesList,nodeId):
 
 
 # -------- FUNCION PARA EMPEZAR UNA PETICION
-def sendData(url,jsonSend,nodeId):
+def sendDataVal(url,jsonSend,nodeId):
     """
     Funcion encargada para enviar los datos en un formato json, y mandar a actualizar los eventos 
     generados dentro del nodo.
@@ -329,8 +329,6 @@ def sendData(url,jsonSend,nodeId):
     Args:
         url (str): url destino
         jsonSend (json): json a enviar
-        numberEvent (int): numero de evento
-        procesList (list): cubos ejecutados
         nodeId (str): identificacion del nodo
 
     Returns:
@@ -355,26 +353,26 @@ def sendData(url,jsonSend,nodeId):
 # -----------------------------------------------------------------------------------------------------------------------
 
 
-# -------- FUNCION PARA FUSIONAR LAS FUENTES
-@app.route('/analytics/fusion', methods = ['POST'])
-def fusion():
+# -------- FUNCION PARA OBTENER LA CORRELACIÓN ENTRE LASVARIABLES DE LAS FUENTES
+@app.route('/analytics/correlation', methods = ['POST'])
+def correlation():
     """
-        END-POINT dedicado fusionar las fuentes de datos entrantes
+        END-POINT dedicado a realizar una correlacion entre las variables de las fuentes de datos
         
         Tranformation json de entrada:
             {
-                "fusion": [var1,var2,...,varN]
+                "Media": [var1]
             }
         
         Nota: 
 
     Returns:
-        json: descripcion de los tiempos del proces
+        json: descripcion de los tiempos del proceso
     """
     global nodeLocal
     global sourcePath
     global nodeManager
-    global sendDataVal
+    global sendData
     
     try:
         # -------- LECTURA
@@ -385,14 +383,15 @@ def fusion():
         startRequestTime = requestJson["startRequestTime"]          # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
         cubes = requestJson["cubes"]                                # CUBOS DE ENTRADA
         readTimeSum = 0
+        comunicationTimeSum=0
         # CARGAREMOS TODAS LAS FUENTES QUE TENGAN LA KEY DE FUSION
         sourcesDF = list()                                                                       # LISTADO DE DATAFRAMES
-        comunicationTimeSum = 0
         for posCube, cubeName in enumerate(cubes.keys()):
             cube = cubes[cubeName]
             
-            if("fusion" in cube["Tranformation"].keys()):    
+            if("regression" in cube["Tranformation"].keys()):    
                 source = cube["nameFile"]
+                
                 if(nodeManager.getID()=="-"):                                                   # VERIFICA SI EXISTE UN NODO MANAGER
                     pathString = ".{}/{}".format(sourcePath,source)
                     df = pd.read_csv(pathString)
@@ -403,7 +402,7 @@ def fusion():
                 sourcesDF.append([df,cubeName])                                                            # GUARDAMOS EN MEMORIA LOS DATAFRAMES
                 del df
             else:
-                raise "No hay parametros"
+                raise Exception("No hay parametros")
         # -------- LECTURA
         endReadTime = time.time()                               # FIN DE LETURA
         readTime = endReadTime - arrivalTime                    # TIEMPO DE LECTURA
@@ -414,70 +413,70 @@ def fusion():
         return jsonify({"response":message}), 501
     
     
+    
     try:
-        # -------- FUSION
+        # -------- correlation
         startFusionTime = time.time()                               # TIEMPO DE INICIO DEL RANGOS
         processTimeSum = 0
         listNamesFusion = list()
         for posSource,source in enumerate(sourcesDF):
             loggerErrorFlag("---------------  {}  --------------------------------------".format(source[1]))
-            listNamesFusion.append(source[1])
-            cube = cubes[source[1]]
+            nameSource = source[1]
+            cube = cubes[nameSource]['Tranformation']['regression']
             df = source[0]
-            if (posSource != 0):
+            columnCorr = cube["columns"]
+            loggerErrorFlag("--------- {} ".format(columnCorr))
+            
+            normalizeVal = mtd.trueOrFalse(cube['normalize'])
+            if (normalizeVal!=False):
+                df = mtd.normalize(df[columnCorr],columnCorr)
+            
+            for algo in cube['algorithm']:
                 
-                column_right = cube['Tranformation']['fusion']['columns']
-                column_left = source_aux['Tranformation']['fusion']['columns']
-                typeFusion = cube['Tranformation']['fusion']['typeFusion']
-                if (typeFusion == "variable"):
-                    df_aux = df_aux.merge(df, how="inner", 
-                                left_on=column_left,
-                                right_on=column_right)	
-                elif(typeFusion == "rows"):
-                    df_aux = pd.concat([df_aux,df], ignore_index=True, sort=False)
-            else:
-                df_aux = df.copy()
-                source_aux = cube.copy()
-                print(source[1])
-
-        nameFile = "fusion_{}".format(str(time.time()).replace(".",""))
-        directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
-        df_aux.to_csv("{}".format(directoryFile), index=False)
-        source_aux["nameFile"] = "{}.csv".format(nameFile)
-        cubesNew = {
-            nameFile: source_aux
-        }
+                nameFile = "REG_{}_{}".format(algo,nameSource)
+                directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
+                df_corr.to_csv("{}".format(directoryFile), index=False)
+                del df_corr
+                
+            nameFile = "{}".format(nameSource)
+            directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
+            df.to_csv("{}".format(directoryFile), index=False)
+            # -------- NEX NODOS
+            # if ("addColumnIn" in cube.keys()):
+            #     cubeNext["columns"]= listColummn
+            #     cubes[source[1]]['Tranformation'][nextC] = cubeNext
+            # -------- NEXT NODO
+            del df
         endFusionTime = time.time()                                 # TIEMPO DE FIN DE LA FUSION
         processTimeSum = processTimeSum + (endFusionTime - startFusionTime)
         del sourcesDF
         # -------- FUSION
     except Exception as e:
-        message = "ERROR FUSION_ENDPOINT {} {}".format(nodeId,e)
+        message = "ERROR CORRELATION_ENDPOINT {} {}".format(nodeId,e)
         loggerErrorSet(message)
         return jsonify({"response":message}), 502
     
     try:
         #  -------- COMUNICACION
-        if (sendDataVal == True):
+        if (sendData == True):
             modeToSend = nodeLocal.getMode()                    # GUARDAMOS EL TIPO DE COMUNICACION DE
             endPoint = requestJson["PIPELINE"][0]               # GUARDAMOS EL ENDPOINT DE LOS TRABAJADORES
             del requestJson["PIPELINE"][0]
             for posNode, node in enumerate(nodes):
                 startComunicationTime = time.time()
                 sendJson = requestJson.copy()
-                sendJson['cubes'] = cubesNew
+                sendJson['cubes'] = cubes
                 loggerErrorFlag(sendJson['cubes'].keys())
                 url = node.getURL(mode=modeToSend, endPoint=endPoint)
                 startRequestTime = time.time()
                 sendJson["startRequestTime"]=startRequestTime
-                loggerErrorFlag("------------ {} ".format(url))
-                t = threading.Thread(target=sendData, args=(url,sendJson,node.getID()))
+                t = threading.Thread(target=sendDataVal, args=(url,sendJson,node.getID()))
                 t.start() 
                 endComunicationTime = time.time()
                 comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
         #  -------- COMUNICACION
         # UPDATE TABLE STATUS
-        messageInfo = {"OPERATION": "FUSION",           # MENSAJE PARA EL LOGGER INFO
+        messageInfo = {"OPERATION": "CORRELATION",           # MENSAJE PARA EL LOGGER INFO
                         "READ_TIME": readTimeSum,
                         "PROCESS_TIME":processTimeSum,
                         "ARRIVAL_TIME":arrivalTime,
@@ -494,7 +493,11 @@ def fusion():
         loggerErrorSet(message)
         return jsonify({"response":message}), 503
     
-    
+  
+
+# -----------------------------------------------------------------------------------------------------------------------
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# -----------------------------------------------------------------------------------------------------------------------
 
 @app.route('/prueba', methods = ['POST'])
 def pruebaSend():
@@ -526,7 +529,7 @@ def pruebaResponde():
         startRequestTime = requestJson["startRequestTime"]      # TIEMPO DE INICIO DE SOLICITUD (startRequestTime)
         
         # -------- LECTURA
-        loggerErrorFlag(requestJson['cubes'].keys())
+        loggerErrorFlag(requestJson['cubes'])
         # -------- LECTURA
         
         endReadTime = time.time()                               # FIN DE LETURA

@@ -27,8 +27,12 @@ jsonSend = {
                             "mediaClass":{"columns":["A","B","C","D","E","F","G","H","I"],
                                           "numImportant":3,
                                           "addColumnIn":"correlation"},
-                            "correlation":{"columns":["A","B","C","D","E"],
-                                           "normalize":1}
+                            "correlation":{"columns":["A","B","C","D","E","F","G","H","I"],
+                                           "normalize":1,
+                                           "algorithm":["pearson", "spearman"],# pearson’, ‘kendall’, ‘spearman
+                                           "addColumnIn":"regression"},
+                            "regression":{"algorithm":["A","B"],
+                                          "columns":[]}
                             },
                    },
              
@@ -42,7 +46,8 @@ jsonSend = {
                                           "numImportant":3,
                                           "addColumnIn":"correlation"},
                             "correlation":{"columns":["A","B","C","D","E"],
-                                           "normalize":1}
+                                           "normalize":1,
+                                           "algorithm":["pearson", "spearman"]}
                                     }
                    },
         "df2_1000000k":{"nameFile":"df2_100000k.csv",
@@ -57,7 +62,8 @@ jsonSend = {
                                           "numImportant":3,
                                           "addColumnIn":"correlation"},
                             "correlation":{"columns":["A","B","C","D","E"],
-                                           "normalize":1}
+                                           "normalize":1,
+                                           "algorithm":["pearson", "spearman"]}
                                     }
                    }
     },

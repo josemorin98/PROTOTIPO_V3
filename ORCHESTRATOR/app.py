@@ -43,9 +43,15 @@ formatter = logging.Formatter(FORMAT)                                # GENERAR E
 console = logging.StreamHandler()                                    # GENERAR EL MANEJADOR CONSOLE
 console.setLevel(logging.INFO)                                       # ESTABLECER EL NIVEL DE CONSOLA
 console.setFormatter(fmt=formatter)                                  # ESTABLECER EL FORMATO DE CONSOLA
-logs_info_file = './data{}/{}_info.log'.format(logPath,nodeId)       # ESTABLECER RUTA DE LOGS INFO
-logs_error_file = './data{}/{}_error.log'.format(logPath,nodeId)     # ESTABLECER RUTA DE LOGS ERROR
-# -------- LOGGER INFO
+logs_info_file = './data{}/info'.format(logPath)       # ESTABLECER RUTA DE LOGS INFO
+if (not os.path.exists(logs_info_file)):
+    os.mkdir(logs_info_file)
+logs_info_file = './data{}/info/{}_info.log'.format(logPath,nodeId)       # ESTABLECER RUTA DE LOGS INFO
+
+logs_error_file = './data{}/error'.format(logPath)     # ESTABLECER RUTA DE LOGS ERROR# -------- LOGGER INFO
+if (not os.path.exists(logs_error_file)):
+    os.mkdir(logs_error_file)
+logs_error_file = './data{}/error/{}_error.log'.format(logPath,nodeId)     # ESTABLECER RUTA DE LOGS ERROR# -------- LOGGER INFO
 loggerInfo = logging.getLogger('LOGS_INFO')                          # CONFIGURACION DEL NOMBRE
 hdlr_1 = logging.FileHandler(logs_info_file)                         # COLOCAR RUTA DE LOGS INFO
 hdlr_1.setFormatter(formatter)                                       # ESTABLECER FORMATO
