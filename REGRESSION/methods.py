@@ -1,13 +1,11 @@
 import pandas as pd
 import json
 from sklearn.preprocessing import MinMaxScaler
-import time
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 import os
-
-# lista de estados
-stateList = list()
 
 # Le columna de un json y la convierte en array
 def readJson(nameFile, column):
@@ -39,21 +37,38 @@ def trueOrFalse(val):
     else: 
         return False
 
-def correlationPlot(corr,sourcePath,algorithm,nameSource,nodeId):
+def regressionLineal(X, y):
+    try: 
+        reg = LinearRegression()
+        reg.fit(X=X, y=y)
+        predicts = reg.predict(X)
+        R2 = r2_score(y, predicts)
+        return predicts, R2
+    except Exception as e:
+        raise e
+        return e,0
+    
+def plotRegression(X,y,xLabel,yLabel,predicts,sourcePath,nodeId,nameSource, namePlot, r2):
     try:
-        sourcePathFig = ".{}/{}/{}".format(sourcePath, nodeId, algorithm)
+        sourcePathFig = ".{}/{}/{}".format(sourcePath, nodeId, "Plots")
         if (not os.path.exists(sourcePathFig)) :
             os.mkdir(sourcePathFig)
-        nameFile = "{}/{}_CORR_{}.eps".format(sourcePathFig,nameSource, algorithm)
-        plt.figure()
-        f, ax = plt.subplots(figsize=(15, 9))
-        ax = sns.heatmap(corr, linewidths=.5, vmin=-1, vmax=1, annot=True,cbar_kws={'label': 'CORRELATION {}'.format(algorithm)})
-        plt.title('CORRELATION {}\n {}'.format(algorithm, nameSource))
-        plt.savefig(nameFile,format="eps",dpi=400)
+            
+        nameFile = "{}/{}_REG_LINEAL.eps".format(sourcePathFig,nameSource)
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        plt.scatter(X, y, color="blue")
+        plt.plot(X, predicts, color ="red", linewidth=3)
+        ax.text(np.max(X), np.max(y), "R2={}".format(round(r2,2)), fontsize=8)
+        plt.title("{}".format(nameSource))
+        plt.ylabel(yLabel)
+        plt.xlabel(xLabel)
+        plt.savefig(nameFile, format="eps", dpi=400)
         plt.cla()
+        plt.clf()
         plt.close()
-        del ax
-        del f
-        return "CORRELATION-{} {} FIGURE SAVE  - OK".format(algorithm, nameSource)
+        del fig, ax
+        return predicts
     except Exception as e:
+        raise e
         return e

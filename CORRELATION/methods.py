@@ -39,6 +39,23 @@ def trueOrFalse(val):
     else: 
         return False
 
+
+def getMaxTuplesCorrs(df, n=5):
+    au_corr = df.corr().unstack()
+    pairsDelete = deleteDuplcatePairs(df)
+    au_corr = au_corr.drop(labels=pairsDelete).sort_values(ascending=False)
+    return list(au_corr.index[0:n])
+
+def deleteDuplcatePairs(df):
+    pairsDelete = set()                             # CONJUNTO DE PARES A ELIMINAR
+    cols = df.columns
+    for i in range(0, df.shape[1]):                 # SE RECORRE LA MATRIX (COLS)
+        for j in range(0, i+1):                     # SE RECORRE LA MATRIX (ROWS)
+            pairsDelete.add((cols[i], cols[j]))     # SE AÑADE LA DIAGONAL Y LA PARTE INFERIOR
+    del df                                          # ELIMINAMOS DE MEMORIA EL DF
+    return pairsDelete
+
+
 def correlationPlot(corr,sourcePath,algorithm,nameSource,nodeId):
     try:
         sourcePathFig = ".{}/{}/{}".format(sourcePath, nodeId, algorithm)
@@ -51,6 +68,7 @@ def correlationPlot(corr,sourcePath,algorithm,nameSource,nodeId):
         plt.title('CORRELATION {}\n {}'.format(algorithm, nameSource))
         plt.savefig(nameFile,format="eps",dpi=400)
         plt.cla()
+        plt.clf()
         plt.close()
         del ax
         del f

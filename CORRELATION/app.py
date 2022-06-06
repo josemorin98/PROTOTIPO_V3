@@ -1,4 +1,5 @@
 # from asyncio.log import logger
+from operator import ne
 import sys
 import threading
 from flask import Flask, request
@@ -361,10 +362,14 @@ def correlation():
         
         Tranformation json de entrada:
             {
-                "Media": [var1]
+                "columns" : ["var1","var2", ... ,"varN"],
+                "numImportant" : 3,     
+                "addColumnIn" : "nextNodeProcess" 
             }
         
         Nota: 
+        addColumnIn: es una condicional la cual agregara las columnas creadas en el nodo indicado.
+                     para que las utilice en el proceso correspondiete a ese nodo siguiente.
 
     Returns:
         json: descripcion de los tiempos del proceso
@@ -427,9 +432,10 @@ def correlation():
             columnCorr = cube["columns"]
             loggerErrorFlag("--------- {} ".format(columnCorr))
             
-            normalizeVal = mtd.trueOrFalse(cube['normalize'])
-            if (normalizeVal!=False):
-                df = mtd.normalize(df[columnCorr],columnCorr)
+            if ("normalize" in cube.keys()):
+                normalizeVal = mtd.trueOrFalse(cube['normalize'])
+                if (normalizeVal!=False):
+                    df = mtd.normalize(df[columnCorr],columnCorr)
             
             for algo in cube['algorithm']:
                 df_corr = df.corr(method=algo)
@@ -441,16 +447,33 @@ def correlation():
                 nameFile = "CORR_{}_{}".format(algo,nameSource)
                 directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
                 df_corr.to_csv("{}".format(directoryFile), index=False)
-                del df_corr
                 
+                # -------- NEX NODOS
+                if ("addColumnIn" in cube.keys()):
+                    if ("numSendPairs" in cube.keys()):                     # SI EXISTE EL PARAMTERO DE NUMERO DE TUPLAS
+                        numPairs = cube["numSendPair"]                      # SE GUARDA EL PARAMETRO
+                    else:
+                        numPairs = 2                                        # SI NO ESTIPULA DOS TUPLAS
+                    pairsSend = mtd.getMaxTuplesCorrs(df=df, n=numPairs)    # OBTENEMOS LAS TUPLAS DE MAYOT VALOR
+                    loggerErrorFlag(pairsSend)
+                    del numPairs
+                    nextC = cube["addColumnIn"]                             # NOMBRE DEL SIGUIENTE PROCESO
+                    cubeNext = cubes[nameSource]["Tranformation"][nextC]    # JSON SIGUEINTE NODE
+                    listCubeNext = cubeNext["columns"]                      # OBTENEMOS LAS COLUMNAS DEL SIGUIENTE NODE
+                    listCubeNext = listCubeNext + pairsSend                 # AGREGAMOS LAS TUPLAS OBTENIDAS DE MAYOR CORRELATION
+                    cubeNext["columns"] = listCubeNext                      # ACTUALIZAMOS LA LISTA DE COLMUNAS
+                    del listCubeNext
+                    cubes[nameSource]["Tranformation"][nextC] = cubeNext    # ACTUALIZAMOS LA INFROAMCION DEL CUBO SIGUIENTE NODO
+                    del nextC
+                    del cubeNext
+                    del pairsSend
+
+                # -------- NEXT NODO
+                del df_corr
             nameFile = "{}".format(nameSource)
             directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
             df.to_csv("{}".format(directoryFile), index=False)
-            # -------- NEX NODOS
-            # if ("addColumnIn" in cube.keys()):
-            #     cubeNext["columns"]= listColummn
-            #     cubes[source[1]]['Tranformation'][nextC] = cubeNext
-            # -------- NEXT NODO
+            
             del df
         endFusionTime = time.time()                                 # TIEMPO DE FIN DE LA FUSION
         processTimeSum = processTimeSum + (endFusionTime - startFusionTime)

@@ -389,6 +389,7 @@ def fillterEspatial():
         if (balanceType == "ESPATIAL"):
             typeBalanceEspatial = paramsBalancer["typeEspatial"]                    # TIPO DE ESPACIAL
             toBalanceData = mtd.typeBalnceEspatial(typeBalance=typeBalanceEspatial) # EXTRAMOS EL BALANCEO ESPACIAL
+            loggerErrorFlag(" --------- ESPATIAL - {}".format(typeBalanceEspatial))
         else:
             e="NOT ESPATIAL"
             message = "ERROR READ_ENDPOINT {} {}".format(nodeId,e)
@@ -477,7 +478,6 @@ def fillterEspatial():
                 startFilteringTime = time.time()
                 for valueGroup in range(mtd.maxValueInList(balanceData)):
                     for posNode, node in enumerate(nodes):
-                                                    # INICIO DE TIEMPO DE FLTRADO
                         
                         if (valueGroup < len(balanceData[posNode])):                # VERIFICAMOS SI EL VALOR A EXTRAER ESTA DENTRO DE LA POSICION ACUTAL
                             espatialValue = balanceData[posNode][valueGroup]        # EXTRAMMOS EL ESPACIAL A MANDAR
@@ -488,13 +488,11 @@ def fillterEspatial():
                             rowByEspatial = source.get_group(espatialValue)         # ETRAEMOS LOS VALORES DE CADA DATAFRAME
                             if (len(rowByEspatial.index)>0):                        # VERIFICAMOS QUE TENGA VALORES
                                 
-                                cubeName = mtd.getNameCube(cubes=cubes,posCube=posSource)                       # OBTENMOS EL NOMBRE DEL CUBO
-                                nameFile = "{}_{}".format(cubeName, espatialValue.replace(" ","_"))         # GENERAMOS EL NUEVO NOMBRE DEL ARCHIVO
-                                loggerErrorFlag(nameFile)
-                                auxCube = cubes[cubeName].copy()                                                # GENERAMOS UNA COPIA DEL CUBO PARA TRABAJAR SOBRE ELLA
-                                auxCube["nameFile"] = "{}.csv".format(nameFile)                                                  # ASIGNAMOS EL NUEVO NOMBRE
-                                cubesNew[nameFile] = auxCube                                                    # ASIGNAMOS LOS VALORES
-                                loggerErrorFlag(cubesNew.keys())
+                                cubeName = mtd.getNameCube(cubes=cubes,posCube=posSource)                           # OBTENMOS EL NOMBRE DEL CUBO
+                                nameFile = "{}_{}".format(cubeName, espatialValue.replace(" ","_"))                 # GENERAMOS EL NUEVO NOMBRE DEL ARCHIVO
+                                auxCube = cubes[cubeName].copy()                                                    # GENERAMOS UNA COPIA DEL CUBO PARA TRABAJAR SOBRE ELLA
+                                auxCube["nameFile"] = "{}.csv".format(nameFile)                                     # ASIGNAMOS EL NUEVO NOMBRE
+                                cubesNew[nameFile] = auxCube                                                        # ASIGNAMOS LOS VALORES
                                 directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL
                                 rowByEspatial.to_csv(directoryFile, index = False,single_file=True)
                         
@@ -504,7 +502,6 @@ def fillterEspatial():
                             startComunicationTime = time.time()
                             sendJson = requestJson.copy()
                             sendJson['cubes'] = cubesNew
-                            loggerErrorFlag(sendJson['cubes'].keys())
                             url = node.getURL(mode=modeToSend, endPoint=endPoint)
                             startRequestTime = time.time()
                             sendJson["startRequestTime"]=startRequestTime
@@ -653,7 +650,6 @@ def fillterTemporal():
                                             n=nRange)
         fin = datetime.strptime(endTime, "%Y-%m-%d %H:%M:%S")   # FECHA DE FIN (DATETIME)
         ranges = np.append(ranges,fin)
-        loggerErrorFlag(ranges)
                 
         endRangeTime = time.time()
         processTimeSum = processTimeSum + (endRangeTime - startRangeTime)
@@ -695,7 +691,7 @@ def fillterTemporal():
                 else:                                                                   
                     mask = (df[variableToBalance] > start) & (df[variableToBalance] <= end)         # CACHAMOS LAS FECHAS DENTRO DE LOS RANGOS SELECCIONADOS
                         
-                loggerErrorFlag("{} - {}".format((start),(end)))
+                loggerErrorFlag(" ------ {} - {}".format((start),(end)))
                 df_aux = df.loc[mask]                                                               # APARTAMOS LOS VALORES DEL TOTAL DEL REGISTRO
                 dfByDateAux.append([df_aux, cubeName, start, end])                                  # GUARDAMOS LOS VALORES DEL TOTAL DEL REGISTRO
                 del df_aux        

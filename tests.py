@@ -25,13 +25,13 @@ jsonSend = {
                             "fusion":{"columns":["fecha","state"],
                                         "typeFusion": "rows"},
                             "mediaClass":{"columns":["A","B","C","D","E","F","G","H","I"],
-                                          "numImportant":3,
-                                          "addColumnIn":"correlation"},
+                                          "numImportant":3},
                             "correlation":{"columns":["A","B","C","D","E","F","G","H","I"],
                                            "normalize":1,
                                            "algorithm":["pearson", "spearman"],# pearson’, ‘kendall’, ‘spearman
-                                           "addColumnIn":"regression"},
-                            "regression":{"algorithm":["A","B"],
+                                           "addColumnIn":"regression",
+                                           "numSendPair":2},
+                            "regression":{"algorithm":["lineal"],
                                           "columns":[]}
                             },
                    },
@@ -47,7 +47,9 @@ jsonSend = {
                                           "addColumnIn":"correlation"},
                             "correlation":{"columns":["A","B","C","D","E"],
                                            "normalize":1,
-                                           "algorithm":["pearson", "spearman"]}
+                                           "algorithm":["pearson", "spearman"],
+                                           "addColumnIn":"regression",
+                                           "numSendPair":2}
                                     }
                    },
         "df2_1000000k":{"nameFile":"df2_100000k.csv",
@@ -63,11 +65,13 @@ jsonSend = {
                                           "addColumnIn":"correlation"},
                             "correlation":{"columns":["A","B","C","D","E"],
                                            "normalize":1,
-                                           "algorithm":["pearson", "spearman"]}
+                                           "algorithm":["pearson", "spearman"],
+                                           "addColumnIn":"regression",
+                                           "numSendPair":2}
                                     }
                    }
     },
-    "PIPELINE":["balance/temporal","analytics/fusion","analytics/mediaClass","/analytics/correlation"],
+    "PIPELINE":["balance/temporal","analytics/fusion","analytics/mediaClass","/analytics/correlation","/analytics/regression"],
     "startRequestTime":time.time()
 }
 

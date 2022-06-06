@@ -13,6 +13,7 @@ import logging
 import requests
 import pandas as pd
 
+
 app = Flask(__name__)
 app.debug = True
 app.config['PROPAGATE_EXCEPTIONS'] = True
@@ -353,15 +354,18 @@ def sendDataVal(url,jsonSend,nodeId):
 # -----------------------------------------------------------------------------------------------------------------------
 
 
-# -------- FUNCION PARA OBTENER LA CORRELACIÓN ENTRE LASVARIABLES DE LAS FUENTES
-@app.route('/analytics/correlation', methods = ['POST'])
-def correlation():
+# -------- FUNCION PARA REALIZAR UNA REGRESSION LINEAL
+@app.route('/analytics/regression', methods = ['POST'])
+def regression():
     """
-        END-POINT dedicado a realizar una correlacion entre las variables de las fuentes de datos
+        END-POINT dedicado a realizar una regression entre dos o mas tuplas
+        donde la primera posicion corresponde a la variable "X" y la segunda posicion
+        corresponde a la variable "Y".
+
         
         Tranformation json de entrada:
             {
-                "Media": [var1]
+                "columns": [[var1,var2], [var3,var4], ..., [varN,varM]]
             }
         
         Nota: 
@@ -415,29 +419,42 @@ def correlation():
     
     
     try:
-        # -------- correlation
+        # -------- regression
         startFusionTime = time.time()                               # TIEMPO DE INICIO DEL RANGOS
         processTimeSum = 0
         listNamesFusion = list()
         for posSource,source in enumerate(sourcesDF):
-            loggerErrorFlag("---------------  {}  --------------------------------------".format(source[1]))
             nameSource = source[1]
             cube = cubes[nameSource]['Tranformation']['regression']
             df = source[0]
-            columnCorr = cube["columns"]
-            loggerErrorFlag("--------- {} ".format(columnCorr))
+            columnsReg = cube["columns"]
             
-            normalizeVal = mtd.trueOrFalse(cube['normalize'])
-            if (normalizeVal!=False):
-                df = mtd.normalize(df[columnCorr],columnCorr)
+            if ("normalize" in cube.keys()):
+                normalizeVal = mtd.trueOrFalse(cube['normalize'])
+                if (normalizeVal!=False):
+                    df = mtd.normalize(df[columnsReg],columnsReg)
             
-            for algo in cube['algorithm']:
+            for tupla in columnsReg:
+                xName = tupla[0]
+                yName = tupla[1]
                 
-                nameFile = "REG_{}_{}".format(algo,nameSource)
-                directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
-                df_corr.to_csv("{}".format(directoryFile), index=False)
-                del df_corr
+                X = df[xName].values.reshape(-1,1)
+                y = df[yName].values
                 
+                regressionLabel, R2_score = mtd.regressionLineal(X=X, y=y)
+                regressionLabel = mtd.plotRegression(X=X, y=y, xLabel=xName, 
+                                                     yLabel=yName, 
+                                                     predicts= regressionLabel, 
+                                                     sourcePath=sourcePath, 
+                                                     nameSource=nameSource,
+                                                     nodeId=nodeLocal.getID(),
+                                                     namePlot=nameSource,
+                                                     r2=R2_score)
+                nameColumn = "RegL_{}".format("_".join(tupla))
+                df[nameColumn] = regressionLabel
+                loggerErrorFlag(" ------------ {}".format(nameColumn))
+            del regressionLabel
+            del X, y                 
             nameFile = "{}".format(nameSource)
             directoryFile = ".{}/{}/{}.csv".format(sourcePath, nodeLocal.getID(), nameFile)     # GUARDAMOS EL DIRECTORIO DEL NODO LOCAL                
             df.to_csv("{}".format(directoryFile), index=False)
@@ -452,7 +469,7 @@ def correlation():
         del sourcesDF
         # -------- FUSION
     except Exception as e:
-        message = "ERROR CORRELATION_ENDPOINT {} {}".format(nodeId,e)
+        message = "ERROR REGRESSION_ENDPOINT {} {}".format(nodeId,e)
         loggerErrorSet(message)
         return jsonify({"response":message}), 502
     
@@ -476,7 +493,7 @@ def correlation():
                 comunicationTimeSum = comunicationTimeSum + (endComunicationTime - startComunicationTime)
         #  -------- COMUNICACION
         # UPDATE TABLE STATUS
-        messageInfo = {"OPERATION": "CORRELATION",           # MENSAJE PARA EL LOGGER INFO
+        messageInfo = {"OPERATION": "REGRESSION",           # MENSAJE PARA EL LOGGER INFO
                         "READ_TIME": readTimeSum,
                         "PROCESS_TIME":processTimeSum,
                         "ARRIVAL_TIME":arrivalTime,
