@@ -1,5 +1,9 @@
 #!/bin/sh
 docker-compose down
+cd TESTS
+docker build -t jmorin98/test:latest .
+docker push jmorin98/test:latest
+cd ..
 cd ORCHESTRATOR
 docker build -t jmorin98/orchestrator:latest .
 docker push jmorin98/orchestrator:latest
