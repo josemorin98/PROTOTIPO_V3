@@ -36,7 +36,7 @@ jsonSend = {
                             },
                    },
              
-        "df1_1000000k":{"nameFile":"df1_100000k.csv",
+        "df1_100000k":{"nameFile":"df1_100000k.csv",
                    "Espatial":"state",
                    "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
                    "Tranformation":{
@@ -52,13 +52,13 @@ jsonSend = {
                                            "numSendPair":2}
                                     }
                    },
-        "df2_1000000k":{"nameFile":"df2_100000k.csv",
+        
+        "df2_100000k":{"nameFile":"df2_100000k.csv",
                    "Espatial":"state",
                    "Temporal":["fecha","%Y-%m-%d %H:%M:%S"],
                    "Tranformation":{
                               "fusion":{"columns":["fecha","state"],
                                         "typeFusion": "rows"
-                                        
                                         },
                             "mediaClass":{"columns":["A","B","C","D","E","F","G","H","I"],
                                           "numImportant":3,
@@ -84,8 +84,9 @@ ip_inp = "10.249.26.15"
 ip = socket.gethostbyname(socket.gethostname())
 
 ip = "localhost"
+# ip = "148.247.202.73" 
 url = "http://{}:5001/balance/espatial".format(ip) # Negocio
-
+# url = "http://{}:5000/test".format(ip) # Negocio
 print(url)
 
 for x in range(1):

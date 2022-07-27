@@ -425,7 +425,6 @@ def fusion():
             cube = cubes[source[1]]
             df = source[0]
             if (posSource != 0):
-                
                 column_right = cube['Tranformation']['fusion']['columns']
                 column_left = source_aux['Tranformation']['fusion']['columns']
                 typeFusion = cube['Tranformation']['fusion']['typeFusion']
