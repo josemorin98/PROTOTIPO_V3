@@ -2,21 +2,34 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import seaborn as sns
 import os
+import  algo_clustering as clus
+from sklearn import metrics
 
-def corr(corr,nameSource,xlabel,ylabel,fol):
+def corr_plot(corr,nameSource,xlabel,ylabel,fol,algo="pearson"):
+    if (not os.path.exists("./{}/{}".format(fol,algo))):
+        os.mkdir("./{}/{}".format(fol,algo))
+    
     f, ax = plt.subplots(figsize=(15, 9))
     ax = sns.heatmap(corr, linewidths=.5, vmin=-1, vmax=1, cbar_kws={'label': 'CORRELATION'}, fmt=".2f",)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title('CORRELACION \n {}'.format(nameSource))
     plt.tight_layout()
-    plt.savefig("./{}/{}".format(fol,nameSource),format="png",dpi=400)
+    plt.savefig("./{}/{}/{}".format(fol,algo,nameSource),format="png",dpi=400)
     plt.cla()
     plt.close()
     
+def corr(result, columns, algo="pearson"):
+    corrs = result.corr(method=algo)
+    corrs = corrs[columns]
+    corrs = corrs.drop(columns, axis=0)
+    corrs.to_csv("./{}/CORR/fusion_{}.csv".format(fol,anios[x]))
+    return corrs
     
-df1 = pd.read_csv("/home/usuario/Descargas/BD_INP/Suicidios/Suic_Medio_Derhab_tasasporsexo.csv")
-ecnomi = pd.read_csv("/home/usuario/Descargas/BD_INP/Macroeconomicas/Macroeconomicas 2000_2020.csv")
+    
+seedFolder = "/home/moringas/Descargas/BD_INP/"
+df1 = pd.read_csv("{}Suicidios/Suic_Medio_Derhab_tasasporsexo.csv".format(seedFolder))
+ecnomi = pd.read_csv("{}/Macroeconomicas/Macroeconomicas 2000_2020.csv".format(seedFolder))
 df1 = df1.fillna(0)
 columnsSuic = list(df1.columns)
 
@@ -40,6 +53,8 @@ for x in range(len(anios)):
     fol = folders[0]
     if (not os.path.exists("./{}".format(fol))):
         os.mkdir("./{}".format(fol))
+        os.mkdir("./{}/CSV".format(fol))
+        os.mkdir("./{}/CORR".format(fol))
         
     ecnomi_aux = ecnomi[ecnomi["anio"]==anios[x]]
     if (x ==0):
@@ -49,20 +64,35 @@ for x in range(len(anios)):
         df1_aux = df1[df1["anio"]<=anios[x]]
         
     result = df1_aux.merge(ecnomi_aux, how="inner", left_on=["cve_ent_mun"], right_on=["cve_ent_mun"])
-    result.to_csv("merge_{}.csv".format(anios[x]), index=False)
+    result.to_csv("./{}/CSV/fusion_{}.csv".format(fol,anios[x]), index=False)
     
     print("------ {}".format(df1_aux.shape))
     print("------ {}".format(ecnomi_aux.shape))
     print("------ {}".format(result.shape))
     resultColumns = set(result.columns)
-    # print(len(resultColumns))
-    countL = 0
-    result = result.dropna(1)
-    corrs = result.corr()
-    corrs = corrs[columnsSuciCorr]
-    corrs = corrs.drop(columnsSuciCorr, axis=0)
     
-    corrs.to_csv("./{}/fusion_{}.csv".format(fol,anios[x]))
-    corr(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol)
+    # ----------------------------- Correlacion
+    
+    result = result.dropna(1)
+    corrs = corr(result=result,
+                 columns=columnsSuciCorr)
+    corr_plot(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol)
+    corrs_spearman = corr(result=result,
+                          algo="spearman",
+                          columns=columnsSuciCorr)
+    corr_plot(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol,"spearman")
+    corrs_spearman = corr(result=result,
+                          algo="kendall",
+                          columns=columnsSuciCorr)
+    corr_plot(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol,"kendall")
 
+    # ----------------------------- Clustering
 
+    # Kmeans
+    colClus = []
+    scoreSil = list()
+    for x in range(3,12):
+        dataClus = result[colClus]
+        kmeanLabel = clus.K_means(k=x,data=dataClus,nameSource="Kmeans_K{}".format(x))
+        scoreSil.append('K{}'.format(x),metrics.silhouette_score(dataClus, kmeanLabel, metric="euclidean"))
+        
