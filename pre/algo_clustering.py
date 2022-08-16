@@ -127,8 +127,8 @@ def mapa_html(result,columname,k):
             radius=5,
             #popup=label,
             tooltip = "Cve {} - Cluster {}/{}".format(cve,cluster,k),
-            color=rainbow[cluster-1],
+            color=rainbow[int(cluster)-1],
             fill=True,
-            fill_color=rainbow[cluster-1],
+            fill_color=rainbow[int(cluster)-1],
             fill_opacity=0.9).add_to(mapa_base)
     return mapa_base

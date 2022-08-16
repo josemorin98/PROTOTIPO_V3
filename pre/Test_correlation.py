@@ -6,7 +6,6 @@ import os
 import  algo_clustering as clus
 from sklearn import metrics
 import numpy as np
-import folium
 
 
 
@@ -24,17 +23,18 @@ def corr_plot(corr,nameSource,xlabel,ylabel,fol,algo="pearson"):
     plt.cla()
     plt.close()
     
-def corr(result, columns, algo="pearson"):
+def corr(result, columns, sex, algo="pearson"):
     print("----- {}".format(algo))
     corrs = result.corr(method=algo)
     corrs = corrs[columns]
     corrs = corrs.drop(columns, axis=0)
-    corrs.to_csv("./{}/CORR/fusion_{}_{}.csv".format(fol,anios[x],algo))
+    corrs.to_csv("./{}/CORR/fusion_{}_{}_{}.csv".format(fol,anios[x],algo,sex))
     return corrs
     
     
-# seedFolder = "/home/moringas/Descargas/BD_INP/"
-seedFolder = "/home/usuario/Descargas/BD_INP/"
+seedFolder = "/home/moringas/Descargas/BD_INP/"
+# seedFolder = "/home/usuario/Descargas/BD_INP/"
+
 df1 = pd.read_csv("{}Suicidios/Suic_Medio_Derhab_tasasporsexo.csv".format(seedFolder))
 ecnomi = pd.read_csv("{}/Macroeconomicas/Macroeconomicas 2000_2020.csv".format(seedFolder))
 df1 = df1.fillna(0)
@@ -43,14 +43,25 @@ columnsSuic = list(df1.columns)
 # print(columnsSuic)
 
 columnsSuciCorr = ['suicAhogamiento', 'suicAhorcamiento', 'suicArma_fuego', 'suicEnvenenamiento', 'suicOtro', 
-                   'suicderhabNE', 'suicSinDerhab', 'suicDerehab', 'suic10_14', 'suic15_19', 'suic20_24', 'suic25_29', 
-                   'suic30_34', 'suic35_39', 'suic40_44', 'suic45_49', 'suic50_54', 'suic55_59', 'suic5_9', 
-                   'suic60_64', 'suicNE_NA', 'pob_00_04', 'pob_05_09', 'pob_10_14', 'pob_15_19', 'pob_20_24', 
-                   'pob_25_29', 'pob_30_34', 'pob_35_39', 'pob_40_44', 'pob_45_49', 'pob_50_54', 'pob_55_59', 
-                   'pob_60_64', 'pob_65_mm', 'tasa_suic5_9', 'tasa_suic10_14', 'tasa_suic15_19', 
-                   'tasa_suic20_24', 'tasa_suic25_29', 'tasa_suic30_34', 'tasa_suic35_39', 'tasa_suic40_44', 
-                   'tasa_suic45_49', 'tasa_suic50_54', 'tasa_suic55_59', 'tasa_suic60_64', 'suic65_mas', 'tasa_suic65_mas',
-                   'tot_pob', 'total_suic', 'tasa_suic']
+                   'suicderhabNE', 'suicSinDerhab', 'suicDerehab', 'suic10_14', 'suic15_19', 'suic20_24', 
+                   'suic25_29', 'suic30_34', 'suic35_39', 'suic40_44', 'suic45_49', 'suic50_54', 'suic55_59', 
+                   'suic5_9', 'suic60_64', 'suicNE_NA', 
+                #    'tasa_suic5_9', 'tasa_suic10_14', 'tasa_suic15_19', 
+                #    'tasa_suic20_24', 'tasa_suic25_29', 'tasa_suic30_34', 'tasa_suic35_39', 'tasa_suic40_44', 
+                #    'tasa_suic45_4tres_car_soc_min,prop_ing_inf_lpob,ing_inf_lpob,prop_ing_inf_lpob_ext,ing_inf_lpob_ext', 'tasa_suic50_54', 'tasa_suic55_59', 'tasa_suic60_64', 
+                   'suic65_mas', 
+                #    'tasa_suic65_mas', 'tot_pob', 
+                   'total_suic', 
+                #    'tasa_suic',
+                #    'prop_pob',
+                    'p_12ymas','psinder','pcon_limi','psind_lim','graproes','pea','pe_inac','pocupada','prom_ocup',
+                    'pro_ocup_c', 'tothog','hogjef_m','hogjef_f','rel_h_m','prom_hnv','graproes_m','graproes_f',
+                    'p_12ymas_m','p_12ymas_f','pea_m','pea_f','pe_inac_m','pe_inac_f','pocupada_m','pocupada_f',
+                    'pdesocup','pdesocup_m','pdesocup_f','propsinss','propea','propea_H','propea_M','propdesoc',
+                    'propdesoc_H','propdesoc_M','propocup','propocup_H','propocup_M','propslim','proconlim',
+                    'prop_M','prop_H','prop_hojef_M','prop_hojef_H','prop_pe_inac','prop_pein_M','prop_pein_H',
+                   ]
+
 
 
 anios = [2000,2005,2010,2015,2020]
@@ -81,68 +92,92 @@ for x in range(len(anios)):
     
     # ----------------------------- Correlacion
     
-    result = result.dropna(axis=1)
-    # corrs = corr(result=result,
-    #              columns=columnsSuciCorr)
-    # corr_plot(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol)
-    # corrs_spearman = corr(result=result,
-    #                       algo="spearman",
-    #                       columns=columnsSuciCorr)
-    # corr_plot(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol,"spearman")
-    # corrs_spearman = corr(result=result,
-    #                       algo="kendall",
-    #                       columns=columnsSuciCorr)
-    # corr_plot(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol,"kendall")
+    # result = result.dropna(axis=1)
+    sexos = result["sexo"].unique()
+    for sex in sexos:
+        
+        data_aux = result[result["sexo"]==sex]
+        
+        corrs = corr(result=data_aux,
+                    columns=columnsSuciCorr,sex=sex)
+        corr_plot(corrs,"Suic_{}_{}".format(sex,anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol)
+        corrs_spearman = corr(result=data_aux,
+                            algo="spearman",
+                            columns=columnsSuciCorr,sex=sex)
+        corr_plot(corrs,"Suic_{}_{}".format(sex,anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol,"spearman")
+        corrs_spearman = corr(result=data_aux,
+                            algo="kendall",
+                            columns=columnsSuciCorr,sex=sex)
+        corr_plot(corrs,"Suic_{}_{}".format(sex,anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol,"kendall")
 
     # ----------------------------- Clustering
 
     # print(result.columns)
     
     # Clustering
-    algorithm = "Kmeans"
-    df_numerics = result.select_dtypes(include=np.number)
-    colClus = df_numerics.columns
-    scoreSil = list()
-    sourceClusG = "./{}/{}".format(fol,algorithm)
-    if (not os.path.exists(sourceClusG)):
-        os.mkdir(sourceClusG)
-    if (not os.path.exists("{}/{}".format(sourceClusG,anios[x]))):
-        os.mkdir("{}/{}".format(sourceClusG,anios[x]))
+    algorithm = "MixtureModel"
+    # df_numerics = result.select_dtypes(include=np.number)
+    # colClus = df_numerics.columns
+    # scoreSil = list()
+    # sourceClusG = "./{}/{}".format(fol,algorithm)
+    # if (not os.path.exists(sourceClusG)):
+    #     os.mkdir(sourceClusG)
+        
+        
+    # if (not os.path.exists("{}/{}".format(sourceClusG,anios[x]))):
+    #     os.mkdir("{}/{}".format(sourceClusG,anios[x]))
     
-    for k in range(3,12):       
-        sourceClus = "{}/{}/K{}".format(sourceClusG,anios[x],k)
-        if (not os.path.exists(sourceClus)):
-            os.mkdir("{}".format(sourceClus))
-        # clustering
-        dataClus = result[colClus]
+    
+    # sexos = result["sexo"].unique()
+    # for sex in sexos:
         
-        # Kmeans
-        labels_cluus = clus.K_means(k=k,data=dataClus)
+    #     sourceClusG = "{}/{}".format(sourceClusG,sex.replace("/","_"))
+    #     if (not os.path.exists(sourceClusG)):
+    #             os.mkdir("{}".format(sourceClusG))
+    #     if (not os.path.exists("{}/{}".format(sourceClusG,anios[x]))):
+    #         os.mkdir("{}/{}".format(sourceClusG,anios[x]))
         
-        # Gaussian Mixture
-        # labels_cluus = clus.MixtureModel(k=k,data=dataClus)
+    #     data_aux = result[result["sexo"]==sex]
+    #     dataClus = data_aux[colClus]
         
-        columname="{}_K{}".format(algorithm,k)
-        result[columname] = labels_cluus
-        
-        # mapa png
-        clus.mapingMX(df=result,
-                      columnColor=columname,
-                      sourcePath="{}".format(sourceClus))
-        
-        # silhouete score
-        # print(labels_cluus)
-        sil = metrics.silhouette_score(dataClus, labels_cluus)
-        scoreSil.append(('K{}'.format(k),sil))
-        
-        # mapa html
-        mapa_base = clus.mapa_html(result,columname,k)            
-        mapa_base.save("{}/{}.html".format(sourceClus,columname))
-        
-        print("K{} \t\t Sil={}".format(k,sil))
-    # Silhouete
-    print(clus.plotingSilhouete(scoreSil,
-                               algorithm,
-                               "{}".format(sourceClus)))
+    #     for k in range(3,12):       
+    #         sourceClus = "{}/{}/K{}".format(sourceClusG,anios[x],k)
+    #         if (not os.path.exists(sourceClus)):
+    #             os.mkdir("{}".format(sourceClus))
+    #         # clustering
+            
+            
+    #         # Kmeans
+    #         # labels_cluus = clus.K_means(k=k,data=dataClus)
+            
+    #         # Gaussian Mixture
+    #         labels_cluus = clus.MixtureModel(k=k,data=dataClus)
+            
+    #         columname="{}{}K{}".format(algorithm,sex.replace("/","_"),k)
+            
+    #         dataClus.insert(len(dataClus.columns),columname,labels_cluus)
+    #         # dataClus[columname] = labels_cluus
+            
+    #         # mapa png
+    #         clus.mapingMX(df=dataClus,
+    #                     columnColor=columname,
+    #                     sourcePath="{}".format(sourceClus))
+            
+    #         # silhouete score
+            
+    #         # sil = metrics.silhouette_score(dataClus, ls)
+    #         # scoreSil.append(('K{}'.format(k),sil))
+            
+    #         # mapa html
+    #         mapa_base = clus.mapa_html(dataClus,columname,k)
+    #         mapa_base.save("{}/{}.html".format(sourceClus,columname))
+            
+    #         print("K{}".format(k))
+    #         # print("K{} \t\t Sil={}".format(k,sil))
+    #     sourceClusG = "./{}/{}".format(fol,algorithm)
+        # Silhouete
+        # print(clus.plotingSilhouete(scoreSil,
+                            #    algorithm,
+                            #    "{}".format(sourceClus)))
     result.to_csv("./{}/CSV/fusion_{}_{}.csv".format(fol,anios[x],algorithm), index=False)
         

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<head>    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.6.0/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_fa7530e442810ec3b8b7f4abe2c79482 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+            </style>
+        
+</head>
+<body>    
+    
+            <div class="folium-map" id="map_fa7530e442810ec3b8b7f4abe2c79482" ></div>
+        
+</body>
+<script>    
+    
+            var map_fa7530e442810ec3b8b7f4abe2c79482 = L.map(
+                "map_fa7530e442810ec3b8b7f4abe2c79482",
+                {
+                    center: [23.6260333, -102.5375005],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 5,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_10c59e52cf80392a4c70ae0d37ce1fb6 = L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {"attribution": "Data by \u0026copy; \u003ca href=\"http://openstreetmap.org\"\u003eOpenStreetMap\u003c/a\u003e, under \u003ca href=\"http://www.openstreetmap.org/copyright\"\u003eODbL\u003c/a\u003e.", "detectRetina": false, "maxNativeZoom": 18, "maxZoom": 18, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+            ).addTo(map_fa7530e442810ec3b8b7f4abe2c79482);
+        
+    
+            var circle_marker_6639c3cc2dd83d10d48af90d191ecd51 = L.circleMarker(
+                [25.7279773190396, -103.49063183898],
+                {"bubblingMouseEvents": true, "color": "#8000ff", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8000ff", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5, "stroke": true, "weight": 3}
+            ).addTo(map_fa7530e442810ec3b8b7f4abe2c79482);
+        
+    
+            circle_marker_6639c3cc2dd83d10d48af90d191ecd51.bindTooltip(
+                `<div>
+                     Cve 10007 - Cluster 1/3
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var circle_marker_73f65892c8204e9eeb31f65495c67b04 = L.circleMarker(
+                [21.5032001276804, -101.23369887654],
+                {"bubblingMouseEvents": true, "color": "#80ffb4", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#80ffb4", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5, "stroke": true, "weight": 3}
+            ).addTo(map_fa7530e442810ec3b8b7f4abe2c79482);
+        
+    
+            circle_marker_73f65892c8204e9eeb31f65495c67b04.bindTooltip(
+                `<div>
+                     Cve 11030 - Cluster 2/3
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var circle_marker_6090a87b44673fe1d251eb09ca66974a = L.circleMarker(
+                [20.8985609177083, -103.22781173254],
+                {"bubblingMouseEvents": true, "color": "#ff0000", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#ff0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5, "stroke": true, "weight": 3}
+            ).addTo(map_fa7530e442810ec3b8b7f4abe2c79482);
+        
+    
+            circle_marker_6090a87b44673fe1d251eb09ca66974a.bindTooltip(
+                `<div>
+                     Cve 14045 - Cluster 0/3
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var circle_marker_d23623e4cb200d16da6886c43d9d45b9 = L.circleMarker(
+                [16.6619794448348, -94.9564524348243],
+                {"bubblingMouseEvents": true, "color": "#ff0000", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#ff0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5, "stroke": true, "weight": 3}
+            ).addTo(map_fa7530e442810ec3b8b7f4abe2c79482);
+        
+    
+            circle_marker_d23623e4cb200d16da6886c43d9d45b9.bindTooltip(
+                `<div>
+                     Cve 20005 - Cluster 0/3
+                 </div>`,
+                {"sticky": true}
+            );
+        
+    
+            var circle_marker_fd350d8bfcd28133f104967395db0c83 = L.circleMarker(
+                [16.9687981533686, -96.2948942876761],
+                {"bubblingMouseEvents": true, "color": "#ff0000", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#ff0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5, "stroke": true, "weight": 3}
+            ).addTo(map_fa7530e442810ec3b8b7f4abe2c79482);
+        
+    
+            circle_marker_fd350d8bfcd28133f104967395db0c83.bindTooltip(
+                `<div>
+                     Cve 20298 - Cluster 0/3
+                 </div>`,
+                {"sticky": true}
+            );
+        
+</script>
