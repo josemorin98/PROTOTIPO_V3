@@ -19,21 +19,21 @@ def corr_plot(corr,nameSource,xlabel,ylabel,fol,algo="pearson"):
     ax.set_ylabel(ylabel)
     ax.set_title('CORRELACION \n {}'.format(nameSource))
     plt.tight_layout()
-    plt.savefig("./{}/{}/{}".format(fol,algo,nameSource),format="png",dpi=400)
+    plt.savefig("./{}/{}/{}.png".format(fol,algo,nameSource),format="png",dpi=400)
     plt.cla()
     plt.close()
     
-def corr(result, columns, sex, algo="pearson"):
+def corr(result, columns, algo="pearson"):
     print("----- {}".format(algo))
     corrs = result.corr(method=algo)
     corrs = corrs[columns]
     corrs = corrs.drop(columns, axis=0)
-    corrs.to_csv("./{}/CORR/fusion_{}_{}_{}.csv".format(fol,anios[x],algo,sex))
+    corrs.to_csv("./{}/CORR/fusion_{}_{}.csv".format(fol,anios[x],algo))
     return corrs
     
     
-seedFolder = "/home/moringas/Descargas/BD_INP/"
-# seedFolder = "/home/usuario/Descargas/BD_INP/"
+# seedFolder = "/home/moringas/Descargas/BD_INP/"
+seedFolder = "/home/usuario/Descargas/BD_INP/"
 
 df1 = pd.read_csv("{}Suicidios/Suic_Medio_Derhab_tasasporsexo.csv".format(seedFolder))
 ecnomi = pd.read_csv("{}/Macroeconomicas/Macroeconomicas 2000_2020.csv".format(seedFolder))
@@ -54,17 +54,18 @@ columnsSuciCorr = ['suicAhogamiento', 'suicAhorcamiento', 'suicArma_fuego', 'sui
                    'total_suic', 
                 #    'tasa_suic',
                 #    'prop_pob',
-                    'p_12ymas','psinder','pcon_limi','psind_lim','graproes','pea','pe_inac','pocupada','prom_ocup',
-                    'pro_ocup_c', 'tothog','hogjef_m','hogjef_f','rel_h_m','prom_hnv','graproes_m','graproes_f',
-                    'p_12ymas_m','p_12ymas_f','pea_m','pea_f','pe_inac_m','pe_inac_f','pocupada_m','pocupada_f',
-                    'pdesocup','pdesocup_m','pdesocup_f','propsinss','propea','propea_H','propea_M','propdesoc',
-                    'propdesoc_H','propdesoc_M','propocup','propocup_H','propocup_M','propslim','proconlim',
-                    'prop_M','prop_H','prop_hojef_M','prop_hojef_H','prop_pe_inac','prop_pein_M','prop_pein_H',
+                    # 'p_12ymas','psinder','pcon_limi','psind_lim','graproes','pea','pe_inac','pocupada','prom_ocup',
+                    # 'pro_ocup_c', 'tothog','hogjef_m','hogjef_f','rel_h_m','prom_hnv','graproes_m','graproes_f',
+                    # 'p_12ymas_m','p_12ymas_f','pea_m','pea_f','pe_inac_m','pe_inac_f','pocupada_m','pocupada_f',
+                    # 'pdesocup','pdesocup_m','pdesocup_f','propsinss','propea','propea_H','propea_M','propdesoc',
+                    # 'propdesoc_H','propdesoc_M','propocup','propocup_H','propocup_M','propslim','proconlim',
+                    # 'prop_M','prop_H','prop_hojef_M','prop_hojef_H','prop_pe_inac','prop_pein_M','prop_pein_H',
                    ]
 
 
 
 anios = [2000,2005,2010,2015,2020]
+anios = [2020]
 folders = ["Suic2"]
 for x in range(len(anios)):
     print("-- {}".format(anios[x]))
@@ -84,7 +85,7 @@ for x in range(len(anios)):
     
     result = df1_aux.merge(ecnomi_aux, how="inner", left_on=["cve_ent_mun"], right_on=["cve_ent_mun"])
     
-    
+    result.to_csv("./merge2020.csv")
     # print("------ {}".format(df1_aux.shape))
     # print("------ {}".format(ecnomi_aux.shape))
     # print("------ {}".format(result.shape))
@@ -92,7 +93,12 @@ for x in range(len(anios)):
     
     # ----------------------------- Correlacion
     
-    # result = result.dropna(axis=1)
+    result = result.dropna(axis=1)
+    corrs = corr(result=result,
+                    columns=columnsSuciCorr)
+    corr_plot(corrs,"Suic_{}".format(anios[x]),"Variables Suicidios", "Variables Macroeconomicas",fol)
+    break
+    
     sexos = result["sexo"].unique()
     for sex in sexos:
         

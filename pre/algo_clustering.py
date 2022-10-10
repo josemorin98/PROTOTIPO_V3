@@ -11,9 +11,47 @@ import geopandas
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import folium
+import seaborn as sns
 
 def read_CSV(name):
     return pd.read_csv(name)
+
+
+
+def corr_plot(corr,nameSource,xlabel,ylabel,fol,anio,algo="pearson"):
+    if (not os.path.exists("./{}/{}".format(fol,algo))):
+        os.mkdir("./{}/{}".format(fol,algo))
+    
+    f, ax = plt.subplots(figsize=(15, 9))
+    ax = sns.heatmap(corr, linewidths=.5, vmin=-1, vmax=1, cbar_kws={'label': 'CORRELATION'}, fmt=".2f",)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title('CORRELACION \n {}'.format(nameSource))
+    plt.tight_layout()
+    plt.savefig("./{}/{}/{}/{}.png".format(fol,algo,anio,nameSource),format="png",dpi=400)
+    plt.cla()
+    plt.close()
+    
+def corr(result, columnsX,columnsY,columnsNo, fol, anio, algo="pearson"):
+    print("----- {}".format(algo))
+    corrs = result.corr(method=algo)
+    # resultColumns = set(result.select_dtypes(include=np.number).columns)
+    # resultColumns = list(resultColumns - set(columnsNo))
+    corrs = corrs[columnsX]
+    # corrs = corrs.drop(columns, axis=0)
+    corrs = corrs.drop(columnsNo,axis=0)
+    corrs = corrs.loc[columnsY]
+
+    
+    
+    if (not os.path.exists("{}/{}".format(fol,algo))):
+        os.mkdir("{}/{}".format(fol,algo))
+    if (not os.path.exists("{}/{}/{}".format(fol,algo,anio))):
+        os.mkdir("{}/{}/{}".format(fol,algo,anio))
+    
+    corrs.to_csv("{}/{}/{}/correlation_{}_{}.csv".format(fol,algo,anio,algo,anio))
+    return corrs
+
 
 
 def trueOrFalse(val):
